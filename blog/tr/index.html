@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>Kendi arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye nasıl çıkardım</title>
-  <meta name="description" content="Stok 2 MiB SID206 MPC561/MPC562 PowerPC dosyasını ve Ford SBL'ini (6G91-14C273-DH) çözerek aracın 256 KiB calibration bloğunu OBD'den okuma, 57 gizli DTC iptalini bulma ve ~190 PS temiz yazılım yazma süreci.">
+  <title>Arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye kendim çıkardım</title>
+  <meta name="description" content="Birebir uyan 2 MiB stok SID206 MPC561/MPC562 PowerPC dosyasını satın alıp Ford'un resmi Secondary Bootloader'ını çözerek aracın 256 KiB calibration bloğunu OBD'den okumak, 57 gizli arıza monitörü iptalini ortaya çıkarmak ve temiz bir ~190 PS yazılım hazırlamak.">
   <meta name="author" content="Barış Uraz">
   <link rel="canonical" href="https://barisuraz.github.io/sid206-toolkit/tr/">
   <link rel="alternate" hreflang="en" href="https://barisuraz.github.io/sid206-toolkit/">
@@ -18,8 +18,8 @@
   <meta property="og:locale" content="tr_TR">
   <meta property="og:locale:alternate" content="en_US">
   <meta property="og:site_name" content="sid206-toolkit">
-  <meta property="og:title" content="Kendi arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye nasıl çıkardım">
-  <meta property="og:description" content="Stok 2 MiB SID206 firmware ve Ford SBL'i çözülerek aracın 256 KiB calibration yedeğini OBD'den alma, 8.398 byte farkı analiz etme ve ~190 PS temiz kalibrasyon hazırlama hikâyesi.">
+  <meta property="og:title" content="Arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye kendim çıkardım">
+  <meta property="og:description" content="Stok 2 MiB SID206 PowerPC dosyasını ve Ford'un resmi SBL'ini çözerek aracın 256 KiB calibration bloğunu OBD'den okumak, değişen 8.398 byte'ı denetlemek ve ~190 PS kalibrasyon hazırlamak.">
   <meta property="og:url" content="https://barisuraz.github.io/sid206-toolkit/tr/">
   <meta property="og:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
   <meta property="og:image:width" content="2520">
@@ -27,8 +27,8 @@
   <meta property="og:image:alt" content="Ankara'da ölçülen dört aşamalı road dyno güç eğrileri">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Kendi arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye nasıl çıkardım">
-  <meta name="twitter:description" content="SID206 PowerPC firmware ve Ford SBL disassembly ile OBD'den 256 KiB calibration okuma, 57 gizli DTC iptalini bulma ve ~190 PS kalibrasyon süreci.">
+  <meta name="twitter:title" content="Arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye kendim çıkardım">
+  <meta name="twitter:description" content="SID206 MPC561/MPC562 firmware'ini ve Ford'un resmi SBL'ini çözerek 256 KiB calibration bloğunu OBD'den okumak, 8.398 byte'ı stokla karşılaştırıp denetlemek ve temiz bir ~190 PS yazılım hazırlamak.">
   <meta name="twitter:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f4c81'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%23ffffff'%3ESID%3C/text%3E%3C/svg%3E">
@@ -57,20 +57,20 @@
 
   <main>
     <article class="grid-band">
-      <h1>Kendi arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye nasıl çıkardım</h1>
+      <h1>Arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye kendim çıkardım</h1>
       <p class="meta-line">
         <span>Barış Uraz</span>
         <span aria-hidden="true">·</span>
         <time datetime="2026-11-20">20 Kasım 2026</time>
         <span aria-hidden="true">·</span>
-        <span>~14 dk okuma</span>
+        <span>~5 dk okuma</span>
         <span aria-hidden="true">·</span>
-        <span>Siemens SID206 · MPC561 PowerPC &amp; SBL</span>
+        <span>Siemens SID206 · MPC561 PowerPC</span>
       </p>
 
-      <p>Arabamın ECU'sundan OBD ile <code>256 KiB</code> calibration yedeğini çekip fabrikanın stok dosyasıyla kıyasladığımda garip bir manzarayla karşılaştım. Düşük yakıt basıncı (<code>P0087</code>), dört piezo enjektör, gaz pedalı sensörleri, radyatör fanı ve dahili CPU arızası (<code>P0606</code>) dâhil tam <strong>57 DTC sessizce kapatılmıştı</strong>. Üstüne yakıt haritaları kaydırılarak 6 ileri otomatik şanzımana tork yaklaşık <strong>%10 eksik</strong> bildiriliyor ve dört farklı motor koruma limiti tamamen devreden çıkarılmıştı.</p>
+      <p>Arabamın <code>256 KiB</code> ECU calibration bloğunu OBD üzerinden çekip stokla karşılaştırdığımda, düşük ray basıncı (<code>P0087</code>), dört piezo enjektör, pedallar, radyatör fanı ve CPU self-test'i (<code>P0606</code>) dâhil <strong>57 sessizce kapatılmış arıza monitörü</strong> ortaya çıktı — bunun yanında otomatik şanzımana torku <strong>~%10 eksik</strong> bildiren yakıt tabloları ve kaldırılmış dört motor koruma limitörü vardı.</p>
 
-      <p>Araba ~300.000 km'de, 2011 model bir Ford Mondeo Mk4.5 station wagon (<code>2.0 TDCi</code>, fabrika çıkışı 130 PS, Aisin <code>TF-80SC</code> tam otomatik). Alırken enjektörleri sağlam, ECU'yu da önceki sahibinin yaptırdığı fiziksel DPF/EGR iptali dışında stok sanıyordum; zaten yolda gidişinden bir şikâyetim de yoktu. Ama testte dört enjektör de bitik çıkıp değişince ve derin UDS <code>$19 02</code> taramasında arıza lambası yakmayan bir <code>P0089</code> kodu görünce içeride tam olarak ne olduğunu merak ettim. Önce internetten birebir uyan <code>2 MiB</code> stok <code>SID206</code> dosyasını satın alıp <code>MPC561/MPC562</code> PowerPC firmware'i ve Ford'un resmi <code>SBL</code>'ini (<code>6G91-14C273-DH.vbf</code>) çözdüm. Mac üzerinden OBD ile arabadaki <code>256 KiB</code> kalibrasyonu çekip değişen <code>8.398</code> byte'ı tek tek analiz ettim, tüm güvenlik monitörlerini geri getirdim ve doğrudan SRAM loglarıyla doğrulanan temiz bir <code>~190 PS</code> harita yazdım.</p>
+      <p>Araba, enjektörlerini sağlam ve önceki sahibinin DPF/EGR iptali dışında ECU'sunu stok sanarak aldığım 2011 Ford Mondeo Mk4.5 station wagon (<code>2.0 TDCi</code>, 130 PS stok, Aisin <code>TF-80SC</code> otomatik, ~300.000 km). Gidişi normaldi; ancak sonradan test tezgâhında dört enjektör de değişti ve UDS <code>$19 02</code> taraması non-MIL bir <code>P0089</code> verdi. İnternetten birebir uyan <code>2 MiB</code> stok dosyayı satın aldım, PowerPC firmware'ini ve Ford bootloader'ını Mac'te çözdüm, korumaları geri getirdim ve temiz bir <code>~190 PS</code> yazılım hazırladım.</p>
 
       <figure class="photo-figure">
         <div class="photo-frame">
@@ -82,106 +82,76 @@
             fetchpriority="high"
           >
         </div>
-        <figcaption>Bahsettiğim araba: 2011 Ford Mondeo Mk4.5 2.0 TDCi station wagon (~300.000 km).</figcaption>
+        <figcaption>Araba: 2011 Ford Mondeo Mk4.5 2.0 TDCi station wagon (~300.000 km).</figcaption>
       </figure>
 
       <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
         <p id="toc-heading" class="toc-heading">İçindekiler</p>
         <ol>
           <li><a href="#results">1. Sonuçlar</a></li>
-          <li>
-            <a href="#firmware-re">2. SID206 firmware'ini çözmek</a>
-            <ol>
-              <li><a href="#memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map'i</a></li>
-              <li><a href="#checksums">2.2 Checksum'lar: CRC-32/MPEG-2 CVN ve runtime Cks2</a></li>
-              <li><a href="#seedkey">2.3 $27 SecurityAccess: 24-bit LFSR, reversed byte order ve GF(2)</a></li>
-              <li><a href="#sram-read">2.4 $23 ReadMemoryByAddress flash'a neden kapalı (ama neyi açıyor?)</a></li>
-              <li><a href="#tables-xrefs">2.5 Mode 22 DID'leri, $31 rutinleri ve 4.784 calibration xref'i</a></li>
-            </ol>
-          </li>
-          <li>
-            <a href="#sbl-re">3. Ford'un resmi SBL'ini çözmek (6G91-14C273-DH.vbf)</a>
-            <ol>
-              <li><a href="#sbl-startup">3.1 Açılış, IMMR peripheral register mapping ve 10 ms watchdog</a></li>
-              <li><a href="#sbl-dispatch">3.2 UDS dispatch tablosundaki sürpriz: native $35 RequestUpload</a></li>
-              <li><a href="#sbl-safety">3.3 Static call-graph kanıtı: okurken flash silemez veya yazamaz</a></li>
-              <li><a href="#sbl-handoff">3.4 Boot → SBL geçişi ve 35 saniyelik OBD backup akışı</a></li>
-            </ol>
-          </li>
-          <li>
-            <a href="#audit">4. Eski yazılımın 8.398 byte'lık analizi</a>
-            <ol>
-              <li><a href="#silent-dtc">4.1 İki katmanlı r5 = 0 sessiz DTC iptali (57 gizli hata)</a></li>
-              <li><a href="#torque-lie">4.2 Kaymış Torque-to-IQ (%10 şanzıman yalanı) ve kapatılan korumalar</a></li>
-            </ol>
-          </li>
-          <li>
-            <a href="#road-logging">5. Yol telemetrisi: statik analizin göremediği iki bulgu</a>
-            <ol>
-              <li><a href="#fuel-pump">5.1 Stok yakıt pompası limiti (v2 vs v2.1)</a></li>
-              <li><a href="#auto-pedal">5.2 Drive modunda devreye giren pedal haritası (0x07873E)</a></li>
-            </ol>
-          </li>
-          <li><a href="#ai">6. Günlük kullandığın arabanın ECU'sunda AI kullanmak</a></li>
-          <li><a href="#repo">7. Kod ve teknik dokümantasyon</a></li>
+          <li><a href="#re-and-sbl">2. Firmware ve bootloader'ı çözmek</a></li>
+          <li><a href="#audit">3. Değişen 8.398 byte'ı denetlemek</a></li>
+          <li><a href="#road-logging">4. Yolda yakalanan iki hata</a></li>
+          <li><a href="#ai">5. Brick edilemeyecek kodda AI</a></li>
+          <li><a href="#repo">6. Kod ve detaylı dokümantasyon</a></li>
         </ol>
       </nav>
 
       <section id="results" class="section-band">
         <div class="section-head">
           <h2>1. Sonuçlar <a class="heading-anchor" href="#results" aria-label="Bölüm 1 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Aşağıdaki hızlanma ve road dyno ölçümlerinin hepsi ~850 m rakımlı Ankara'da (~923 mbar basınçta) alındı; ince hava yüzünden tepe güç deniz seviyesine göre doğal olarak biraz düşük çıkar. Deniz seviyesine inildiğinde aynı kalibrasyon, fabrikanın kendi barometrik düzeltme haritalarıyla otomatik olarak ~<code>190 PS</code> ve <code>395–400 Nm</code> bandına çıkıyor.</p>
+        <p>Aşağıdaki ölçümlerin tamamı Ankara'da (~850 m, ~923 mbar) alındı; ince hava tepe gücü biraz düşürür. Deniz seviyesinde fabrika barometrik haritaları aynı kalibrasyonu otomatik olarak <code>~190 PS</code> / <code>395–400 Nm</code> düzeyine çıkarıyor.</p>
 
         <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper wide">
           <table>
-            <caption id="results-table-caption">Eski Yazılım, Orijinal Yazılım ve Son Yazılım karşılaştırması</caption>
+            <caption id="results-table-caption">Eski Yazılım, Geri Yüklenen Stok ve Son Yazılım karşılaştırması</caption>
             <thead>
               <tr>
                 <th scope="col">Ölçüt</th>
                 <th scope="col">Eski Yazılım</th>
-                <th scope="col">Orijinal Yazılım (DPF/EGR iptal)</th>
+                <th scope="col">Geri Yüklenen Stok (DPF/EGR kapalı)</th>
                 <th scope="col">Son Yazılım</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <th scope="row">Tepe güç (Ankara ~850 m / deniz seviyesi)</th>
-                <td>Ölçülmedi (düz 390 Nm limit, kaymış IQ)</td>
-                <td>~130 PS stok veri</td>
+                <td>Ölçülmedi (düz 390 Nm limit, kaydırılmış IQ)</td>
+                <td>~130 PS fabrika baz değeri</td>
                 <td><span class="badge-good">180–185 PS (~190 PS / ~395–400 Nm)</span></td>
               </tr>
               <tr>
                 <th scope="row">80–120 km/h (Ankara)</th>
                 <td>Ölçülmedi</td>
                 <td>10.3 sn</td>
-                <td><span class="badge-good">7.2–7.8 sn</span> (60–100 km/h: 5.8 sn)</td>
+                <td><span class="badge-good">7.2–7.8 sn</span> (60–100 km/h 5.8 sn)</td>
               </tr>
               <tr>
                 <th scope="row">Sıcak rölanti kararlılığı</th>
-                <td>~3 kat fazla dalgalanma (stok sonrası fark edildi)</td>
+                <td>~3 kat daha fazla dalgalanma (stok sonrası fark edildi)</td>
                 <td>Düzenli (5.2 RPM std sapma)</td>
                 <td><span class="badge-good">Düzenli (5.2 RPM std sapma)</span></td>
               </tr>
               <tr>
-                <th scope="row">Gizlenmiş DTC'ler</th>
-                <td><span class="badge-warn">57 hata sessizce kapatılmış</span> (enjektör, yakıt, CPU)</td>
+                <th scope="row">Gizli arıza kodları</th>
+                <td><span class="badge-warn">57 sessizce kapatılmış</span> (enjektör, yakıt, CPU)</td>
                 <td>0 (yalnızca DPF/EGR)</td>
                 <td><span class="badge-good">0 (yalnızca DPF/EGR)</span></td>
               </tr>
               <tr>
                 <th scope="row">Şanzımana bildirilen tork</th>
                 <td><span class="badge-warn">~%10 eksik bildiriliyor</span></td>
-                <td>Doğru (1:1)</td>
-                <td><span class="badge-good">Doğru (1:1, temiz rescale)</span></td>
+                <td>Dürüst 1:1</td>
+                <td><span class="badge-good">Dürüst 1:1 (temiz rescale)</span></td>
               </tr>
               <tr>
                 <th scope="row">Yüksek basınç yakıt rayı</th>
-                <td><code>P0087</code> gizlenmiş (sadece non-MIL <code>P0089</code>)</td>
-                <td>Hedef basıncı tutuyor</td>
-                <td><span class="badge-good">1.600 bar tutuyor (118 düşüş → 1)</span></td>
+                <td>Gizli <code>P0087</code> (yalnızca non-MIL <code>P0089</code>)</td>
+                <td>Hedefi temiz tutuyor</td>
+                <td><span class="badge-good">1.600 bar tutuyor (118 düşüş 1'e indi)</span></td>
               </tr>
             </tbody>
           </table>
@@ -206,161 +176,41 @@
             </button>
           </div>
           <figcaption>
-            <span>Ankara (~923 mbar) şartlarında kaydedilen dört aşamalı road dyno gelişimi.</span>
+            <span>Ankara (~923 mbar) road dyno gelişimi.</span>
             <span class="zoom-hint">[büyütmek için tıklayın]</span>
           </figcaption>
         </figure>
 
-        <p>Turbo basıncı ya da yakıt açmadan önce bozuk enjektör ve tork haritalarını düzeltmek asıl farkı yarattı. Temiz stok kalibrasyona dönünce sıcak rölanti yaklaşık üç kat pürüzsüzleşti (bunu stok sonrası fark ettim). Yakıt talebini yüksek basınç pompasının fiziksel tavanının hemen altında tutmak da fazla yakıt istemekten daha yüksek tekerlek gücü verdi.</p>
+        <p>Bozuk mekanikleri düzeltmek basınç açmaktan çok daha önemliydi. Stok enjektör zamanlaması ve Torque-to-IQ matematiği dönünce sıcak rölanti ~3 kat pürüzsüzleşti (stok sonrası fark edildi); yakıtı pompa tavanının hemen altına çekmek ise gücü doğrudan artırdı.</p>
       </section>
 
-      <section id="firmware-re" class="section-band">
+      <section id="re-and-sbl" class="section-band">
         <div class="section-head">
-          <h2>2. SID206 firmware'ini çözmek <a class="heading-anchor" href="#firmware-re" aria-label="Bölüm 2 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <h2>2. Firmware ve bootloader'ı çözmek <a class="heading-anchor" href="#re-and-sbl" aria-label="Bölüm 2 bağlantısı"><span aria-hidden="true">#</span></a></h2>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Piyasadaki basit OBD cihazları genelde sadece calibration bloğunu okur; DTC iptallerinin, runtime checksum kontrollerinin ve otomatik şanzıman tork hesabının bulunduğu Application koduna hiç dokunmaz. 15 yıllık silikonlu ECU kutusunu masada açıp kartı kırma riskine girmek istemedim. Bunun yerine önce internetten aracın yazılımıyla birebir aynı <code>2 MiB</code> stok <code>.FLS</code> dosyasını (<code>8G91-12K532-AC</code>) satın alıp tüm Bootloader ve Application kodunu bilgisayarda inceledim; sonra Tactrix OpenPort 2.0 J2534 kabloyla Mac üzerinden arabanın <code>256 KiB</code> calibration'ını güvenle okuyup yazacak araçları yazdım.</p>
+        <p>15 yıllık kapalı alüminyum ECU'yu açmak kartı çatlatma riski taşıdığından, <strong>32-bit big-endian <code>MPC561/MPC562</code> PowerPC</strong> kodunu offline incelemek için birebir uyan <code>2 MiB</code> stok <code>.FLS</code> (<code>8G91-12K532-AC</code>) aldım (donör <code>.EPR</code> EEPROM asla yazılmamalı — PATS anahtarları ve VIN orada durur). Disassembly dört bellek bölgesini haritaladı, <code>CRC-32/MPEG-2</code> CVN'lerini bit bit doğruladı ve sürüşte <code>0x040240–0x040544</code> aralığını tarayan canlı checksum'ı (<code>Cks2</code>, <code>0x562E0C</code>) ortaya çıkardı.</p>
 
-        <h3 id="memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map'i <a class="heading-anchor" href="#memory-map" aria-label="Bölüm 2.1 bağlantısı"><span aria-hidden="true">#</span></a></h3>
+        <p>UDS <code>$27 SecurityAccess</code>, <code>[seed(3), secret(5)]</code> üzerinde 24-bit Galois LFSR kullanıyor. Açık script'lerin başarısız olma sebebi ECU'nun 5 byte'lık secret'ı reversed byte sırasıyla yüklemesi — ve <code>GF(2)</code> lineer olduğundan tek bir CAN challenge-response çifti secret'ı milisaniyeler içinde çözüyor. Level <code>0x03</code> ile açılan <code>$23 ReadMemoryByAddress</code> ise whitelist (<code>0x1A565C</code>) yüzünden flash'ı engelliyor ve yalnızca iki SRAM penceresine izin veriyor: yedek için işlevsiz, yol logu için harika.</p>
 
-        <p><code>8G91-12K532-AC</code> imajı <strong>32-bit big-endian Motorola/Freescale <code>MPC561/MPC562</code> PowerPC</strong> işlemcide ve <code>ERCOSEK V4.1.16 MPC555</code> RTOS (sürüm metni <code>0x0AAB67</code> adresinde duruyor) üzerinde koşuyor. Fabrika çıkışı Blok 4 CALID'i olan <code>7G91-14C275-AA</code> da doğrudan <code>0x183396</code> ofsetinde yer alıyor.</p>
+        <p>Flash okumak için özel PowerPC shellcode riskine girmek yerine, Boot içinde adı geçen Ford'un resmi Secondary Bootloader'ını (<code>0x004290</code>'da <code>6G91-14C273-DH.vbf</code>) açtım ve aradığımı buldum: <code>$34</code> yanında <strong>native UDS <code>$35 RequestUpload</code></strong> da barındırıyor. Static call-graph analizi <code>$35</code> okumalarında <code>flash_erase</code> (<code>0x007FCA84</code>) ve <code>flash_write</code> (<code>0x007FC920</code>) yollarına ulaşılamadığını kanıtladı; böylece Tactrix OpenPort 2.0 üzerinden Mac'teki Python script'i tüm <code>256 KiB</code> bloğu CRC-16 kontrolüyle <strong>~35 sn</strong>'de çekti. (Detaylar <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">firmware-re.md</a> ve <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">sbl-re.md</a> dosyalarında.)</p>
 
-        <p>Başlamadan önemli bir donanım uyarısı: başka bir SID206'dan alınan harici EEPROM (<code>.EPR</code>) dosyaları araca özel PATS immobiliser anahtarlarını, VIN'i ve enjektör kodlarını içerir; donör EEPROM yazarsanız araba marş almaz. Yazılım incelemesi için sadece <code>2 MiB</code> (<code>0x200000</code>) flash (<code>.FLS</code>) imajı kullanılır. PowerPC SDA/SDA2 base pointer'ları belleği şöyle ayırır:</p>
-
-        <pre role="region" aria-label="SID206 MPC561/MPC562 memory map" tabindex="0"><code>Flash Ofseti             CPU Virtual Addr          Boyut      Görev &amp; Kritik Adresler
-──────────────────────────────────────────────────────────────────────────────────────────────────
-0x000000 .. 0x03FFFF     0x00000000 .. 0x0003FFFF  256 KiB    Bootloader (1:1 map; reset 0x000100 → 0x00009F36)
-                                                              Boot0/Boot1 CVN, SBL adı 0x004290, Boot key 0x022231
-
-0x040000 .. 0x07FFFF     0x00840000 .. 0x0087FFFF  256 KiB    Calibration (+0x800000 fark; r2 = 0x00848534 @ 0x19CCEC)
-                                                              CVN 0x040104, Cks2 0x040240..0x040544, DTCs 0x04ABC4
-
-0x080000 .. 0x1CFFFF     0x00480000 .. 0x005CFFFF  1.3 MiB    Application (+0x400000 fark; 0x0D0000..0x0FFFFF 0xFF boş)
-                                                              App CVN 0x100004, Cks2 caller 0x562E0C, Blok 4 @ 0x180000+
-
-(yalnızca runtime)        0x007F8000 .. 0x007FFFFF   32 KiB    Dahili MPC561 SRAM (r13 = 0x007FFFF0 @ 0x19CCE4)
-                                                              Stack, canlı motor verileri ($23), SBL yükleme alanı</code></pre>
-
-        <h3 id="checksums">2.2 Checksum'lar: CRC-32/MPEG-2 CVN ve runtime Cks2 <a class="heading-anchor" href="#checksums" aria-label="Bölüm 2.2 bağlantısı"><span aria-hidden="true">#</span></a></h3>
-
-        <p>Tek bir byte değiştirmeden önce ECU'nun açılışta ve yolda baktığı tüm bütünlük kontrollerini çözmem gerekiyordu. Gömülü CRC tablolarının (<code>0x021BEC</code>, <code>0x02FFE0</code>, <code>0x0A4954</code>) çağıranlarını inceleyince algoritmanın <strong>non-reflected CRC-32/MPEG-2</strong> olduğu çıktı (polinom <code>0x04C11DB7</code>, init <code>0xFFFFFFFF</code>, xorout <code>0x00000000</code>). Stok dosyada okunabilen üç bölgeyi de bit bit tutuyor:</p>
-
-        <ul>
-          <li><strong>Boot0 (<code>0x008004</code>):</strong> 3 aralıkta <code>0xA5D99536</code>.</li>
-          <li><strong>Boot1 (<code>0x020044</code>, Mode <code>09 06</code> CVN #3):</strong> 3 aralıkta <code>0xA3C368D3</code>.</li>
-          <li><strong>Calibration (<code>0x040104</code>, Mode <code>09 06</code> CVN #2):</strong> <code>0x040240–0x07D1BF</code> içindeki 4 aralıkta stok değer <code>0x96C1E69C</code>.</li>
-          <li><strong>Runtime <code>Cks2</code> Kontrolü (<code>0x1000D0</code>):</strong> Header CVN'den bağımsız olarak, Application içindeki <code>0x562E0C</code> rutini motor çalışırken <code>0x040240–0x040544</code> aralığını sürekli kontrol eder. Header CVN doğru olsa bile <code>Cks2</code> alanı bozulursa ECU hataya düşer; bu yüzden yazma aracımız <code>Cks2</code> içinde sıfır byte değişikliğini zorunlu tutuyor.</li>
-        </ul>
-
-        <h3 id="seedkey">2.3 $27 SecurityAccess: 24-bit LFSR, reversed byte order ve GF(2) <a class="heading-anchor" href="#seedkey" aria-label="Bölüm 2.3"><span aria-hidden="true">#</span></a></h3>
-
-        <p>Boot yazma (<code>10 02</code>) ya da Application SRAM okuma (<code>10 03</code> Level <code>0x03</code>) için UDS <code>$27</code> servisi 3 byte seed verip 5 byte secret'tan hesaplanan 3 byte key ister. Boot (<code>0x02E2C8</code>) ve App (<code>0x19FCA0</code>) içindeki <code>$27</code> handler'larının disassembly'si Ford'un 24-bit Galois LFSR algoritmasını doğruladı (<code>init = 0xC541A9</code>, feedback tap <code>0x909028</code>, <code>[seed(3), secret(5)]</code> üzerinde 64 tur).</p>
-
-        <p>İnternetteki hazır script'lerin neden çalışmadığını PowerPC instruction'ları gösterdi: firmware <code>secret[0]</code>'ı <code>r30</code> register'ının en anlamlı byte'ına, kalan <code>secret[1..4]</code> byte'larını da <code>r6</code>'ya yüklüyor. Yani flash tablosundaki (<code>0x022231</code> Boot, <code>0x0A26C9</code>/<code>0x0A26CE</code> App) 5 byte diziliminin <strong>reversed byte order</strong> hâliyle çalışıyor:</p>
-
-        <pre role="region" aria-label="SID206 SecurityAccess key tablosu ofsetleri" tabindex="0"><code>Session          Level   SendKey   Flash Offset   Notlar
-──────────────────────────────────────────────────────────────────────────────────────────────────
-10 02 (Boot)     0x01    27 02     0x022231       0x022228 tablosunda statik 5-byte secret (CLI için raw[::-1])
-10 03 (App)      0x01    27 02     0x0A26C9       0x0A26BC tablosunda statik 5-byte secret (CLI için raw[::-1])
-10 03 (App)      0x03    27 04     0x0A26CE       Statik 5-byte secret — $23 SRAM okuma &amp; $31 rutinlerini açar
-10 03 (App)      0x11    27 12     0x0A26D3       Delay korumalı / RAM hesaplı (0x0A26DB = 0x01, r13 - 0x749e)</code></pre>
-
-        <p><code>GF(2)</code> üzerindeki XOR kaydırma lineer olduğu için cevabın 24 biti bilinmeyen 40 secret bitine doğrusal bağlı. CAN hattından yakalanan <em>tek bir</em> geçerli seed-key çifti bile 5 byte secret'ı matematiksel olarak anında çözüyor (<code>sid206 seedkey</code> hem tek çiftle çözümü hem çoklu çift doğrulamasını içeriyor).</p>
-
-        <h3 id="sram-read">2.4 $23 ReadMemoryByAddress flash'a neden kapalı (ama neyi açıyor?) <a class="heading-anchor" href="#sram-read" aria-label="Bölüm 2.4"><span aria-hidden="true">#</span></a></h3>
-
-        <p>Extended session'da (<code>10 03</code>) UDS <code>$23 ReadMemoryByAddress</code> servisi (<code>0x1A1F54</code> + parser <code>0x1A5BE4</code>, <code>ALFID = 0x14</code>: <code>23 14 &lt;addr_be32&gt; &lt;len_u8&gt;</code>), Level <code>0x03</code> güvenlik maskesi (<code>0x08</code>) kontrolünden bile önce <code>0x1A565C</code> üzerinden whitelist kontrolü yapar ve sadece iki dahili SRAM penceresine izin verir:</p>
-
-        <ul>
-          <li><code>0x007F8940 .. 0x007F8ADF</code></li>
-          <li><code>0x007F8B90 .. 0x007FF7FF</code></li>
-        </ul>
-
-        <p>Boot (<code>0x00000000</code>), Application (<code>0x00480000</code>) veya Calibration (<code>0x00840000</code>) flash adreslerinin hepsi App modunda <code>NRC 0x31</code> (<code>requestOutOfRange</code>) ile reddediliyor. Dolayısıyla <code>$23</code> flash yedeği almaya yaramıyor; ama yolda desired/actual ray basıncı, IQ ve baro değerlerini yüksek hızda loglamak için biçilmiş kaftan.</p>
-
-        <h3 id="tables-xrefs">2.5 Mode 22 DID'leri, $31 rutinleri ve 4.784 calibration xref'i <a class="heading-anchor" href="#tables-xrefs" aria-label="Bölüm 2.5"><span aria-hidden="true">#</span></a></h3>
-
-        <p>Canlı veri kanallarını ve kalibrasyon haritalarını otomatik bulmak için üç ROM tablosu daha parse edildi:</p>
-
-        <ul>
-          <li><strong>Mode 22 DID dizini (<code>0x09A738–0x09B098</code>):</strong> <code>200</code> adet <code>12</code> byte'lık kayıt (<code>&gt;IHBBBBBB</code>). Hepsi güvenlik kilidi olmadan Default session'da (<code>0x1F</code>) doğrudan okunuyor (<code>F1xx</code> kimlikleri, <code>F4xx</code> J1979 DID'leri, <code>FD16–FD28</code> / <code>11xx–16xx</code> Ford iç kanalları).</li>
-          <li><strong><code>$31</code> RoutineControl tablosu (<code>0x0A2D04</code>, sayı @ <code>0x0A2F44</code>):</strong> <code>24</code> servis rutini (önkoşullu <code>0x0202</code>, <code>0xF000–0xFF00</code>; Level <code>0x03</code> <code>0x4003</code>, <code>0x8012</code>, <code>0xFD30–32</code>; Level <code>0x11</code> <code>0x716D</code>).</li>
-          <li><strong>Calibration PowerPC xref'leri (<code>0x040000–0x07D1BF</code>):</strong> Application taramasından tam <code>4.784</code> referans çıktı — <code>0x040544–0x04CAAC</code> içinde <code>4.231</code> adet <code>r2 = 0x00848534</code> tabanlı skaler/switch/eksen, <code>0x04CB00–0x07AED3</code> içinde <code>189</code> adet <code>lis+op</code> harita bloğu ve <code>0x07AED4–0x07D1BF</code> arasında <code>194</code> ek referans.</li>
-          <li><strong>Fabrika <code>P0089</code>'u neden arıza ışığı yakmıyor:</strong> <code>0x04ABC4</code>'teki <code>279</code> satırlık (28 B/satır) DTC tablosunda <code>P0089</code> (<code>0x04BC64</code>) non-MIL (<code>0x10</code>) sınıfıyla tanımlı; arıza lambası yakan <code>P2263</code> ve <code>P2002</code> ise <code>0x43</code>/<code>0x47</code> kullanıyor. Bu yüzden UDS <code>$19 02</code> kodu görürken standart Mode <code>03</code> ve gösterge sessiz kalıyor.</li>
-        </ul>
-      </section>
-
-      <section id="sbl-re" class="section-band">
-        <div class="section-head">
-          <h2>3. Ford'un resmi SBL'ini çözmek (6G91-14C273-DH.vbf) <a class="heading-anchor" href="#sbl-re" aria-label="Bölüm 3"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
-        </div>
-
-        <p>App <code>$23</code> flash adreslerine kapalı olduğundan, arabadaki <code>256 KiB</code> calibration yedeğini OBD'den almanın alışıldık yolu Boot session (<code>10 02</code>) ile 32 KiB MPC561 SRAM'ine kendi PowerPC payload'unu yazmaktır. Ama flash donanımına dokunan özel bir SRAM kodunda ufak bir hata ECU'yu brick edebilir. Bunun yerine satın aldığımız <code>2 MiB</code> stok dosyanın Boot bloğunda (<code>0x004290</code>) adı geçen resmi Ford <code>SBL</code>'ini (<code>6G91-14C273-DH.vbf</code>, <code>file_checksum = 0xAD9CAEDD</code>) VBF içinden çıkarıp tüm fonksiyonlarını disassemble ettim.</p>
-
-        <h3 id="sbl-startup">3.1 Açılış, IMMR peripheral register mapping ve 10 ms watchdog <a class="heading-anchor" href="#sbl-startup" aria-label="Bölüm 3.1"><span aria-hidden="true">#</span></a></h3>
-
-        <p>VBF içinden üç SRAM segmenti çıkıyor: <code>21.888</code> B @ <code>0x007F8380</code> (CRC-16 <code>0x973D</code>), <code>3.828</code> B @ <code>0x007FE1D0</code> (CRC-16 <code>0xDB76</code>) ve <code>1</code> B @ <code>0x007FFDA0</code> (CRC-16 <code>0xFF00</code>). Giriş noktası <code>0x007FE254</code>. Disassembly incelemesi SBL'nin yüklendikten sonra tamamen bağımsız çalıştığını netleştirdi:</p>
-
-        <ul>
-          <li>İlk iş <code>spr 0x27e = 2</code> (<code>IMMR ISB = 0b01</code>) ile MPC561 peripheral register'larını <code>0x00400000</code> tabanına taşır; böylece hardware watchdog register'ı <code>SWSR</code> <code>0x006FC00E</code>, harici flash kontrolcüsü de <code>0x006FC800</code> adresine gelir.</li>
-          <li>Stack pointer'ı <code>r1 = 0x007F8380</code> (<code>896</code> byte aşağı doğru), SDA base pointer'ı <code>r13 = 0x007FFFF0</code> yapar; BSS'i (<code>0x007FD900..0x007FE1CF</code>) sıfırlar ve flash region tablosunu <code>0x007FEEC8</code>'e kurar. Boot'un kendi RAM alanı (<code>0x007FFB00..0x007FFD64</code>) ile çakışmaz.</li>
-          <li>8 görevli bir cooperative scheduler (<code>0x007FE2AC</code> / <code>0x007FEA40</code>) çalıştırır: <code>1 ms</code> timer ve kontak/akü kontrolü (<code>0x007FE6A8</code>), her <code>10 ms</code>'de bir <code>0x006FC00E</code>'ye <code>0x556C</code> / <code>0xAA39</code> yazarak watchdog besleme (<code>0x007FE710</code>), CAN/ISO-TP polling (<code>0x007FAA24</code>) ve arka planda CRC-16 hesaplarken <code>7F &lt;sid&gt; 78</code> responsePending frame basma (<code>0x007FAB40</code>).</li>
-        </ul>
-
-        <h3 id="sbl-dispatch">3.2 UDS dispatch tablosundaki sürpriz: native $35 RequestUpload <a class="heading-anchor" href="#sbl-dispatch" aria-label="Bölüm 3.2"><span aria-hidden="true">#</span></a></h3>
-
-        <p><code>0x007FBF18</code> adresindeki 10 satırlık UDS dispatch tablosunu (<code>0x007FBC30</code> yönlendirir) açınca güzel bir sürpriz çıktı: Ford'un dokunulmamış resmi VBF SBL'inde <code>$34 RequestDownload</code> yanında <strong>native <code>$35 RequestUpload</code></strong> da zaten varmış — sequence wrap (<code>255 → 0</code>) ve çıkış CRC-16 kontrolüyle beraber:</p>
-
-        <pre role="region" aria-label="Resmi 6G91-14C273-DH.vbf UDS dispatch tablosu ve izinli flash bölgeleri" tabindex="0"><code># SBL UDS Dispatch Tablosu (0x007FBF18)
-SID   Service              Handler      Doğrulanmış Davranış
-────────────────────────────────────────────────────────────────────────────────────────────────────
-0x10  DiagnosticSession    0x007FABF8   0x01/0x81 App'e resetler; 0x02/0x82 SBL içinde kalır
-0x11  ECUReset             0x007FACE0   0x01/0x81 0x007FEDEC ile hardware watchdog reset -&gt; Boot+App
-0x22  ReadDataById         0x007FAD60   D1 00 SBL heartbeat 62 D1 00 02 döner; statik ID'ler Boot'tan
-0x27  SecurityAccess       0x007FAF50   27 01 -&gt; 67 01 00 00 00; SBL aktifken 27 02 dummy byte kabul eder
-0x31  RoutineControl       0x007FB004   01 FF 00 Flash Erase (0x007FCA84); 01 FF 01 CRC-16 CheckMemory
-0x34  RequestDownload      0x007FB278   34 00 44 &lt;addr&gt; &lt;size&gt;, download flag -0x22de(r13) = 1 yapar
-0x35  RequestUpload        0x007FB440   35 00 44 &lt;addr&gt; &lt;size&gt;, upload flag -0x22dd(r13) = 1 yapar
-0x36  TransferData         0x007FB5DC   Flag'e göre dallanır; upload 252 B/frame, 255-&gt;0 wrap + idempotent retry
-0x37  RequestTransferExit  0x007FB908   remaining == 0 kontrolü, 77 &lt;crc16_hi&gt; &lt;crc16_lo&gt; döner
-0x3E  TesterPresent        0x007FB9FC   S3 timer'ını (0x1F4) yeniler
-
-# SBL Descriptor Tablosundaki İzinli Flash Bölgeleri (0x007FEEC8, 4 Kayıt @ 0x007FEE78)
-No    Bölge                CPU Start .. End              Boyut
-────────────────────────────────────────────────────────────────────────────────────────────────────
-0     Calibration          0x00840000 .. 0x0087FFFF      262.144 B (256 KiB)
-1     Application 1        0x00480000 .. 0x0057FFFF    1.048.576 B (1 MiB)
-2     Application 2        0x00580000 .. 0x0058FFFF       65.536 B (64 KiB)
-3     Application 3        0x00590000 .. 0x005CFFFF      262.144 B (256 KiB)   (Boot hariç)</code></pre>
-
-        <h3 id="sbl-safety">3.3 Static call-graph kanıtı: okurken flash silemez veya yazamaz <a class="heading-anchor" href="#sbl-safety" aria-label="Bölüm 3.3"><span aria-hidden="true">#</span></a></h3>
-
-        <p>Kendi arabama bağlamadan önce Blok 0 ve Blok 1'deki tüm call-graph'ı statik olarak doğruladım. <code>flash_erase</code> (<code>0x007FCA84</code>) yalnızca <code>$31 01 FF 00</code> (<code>0x007FB160</code>) içinden, <code>flash_write</code> (<code>0x007FC920</code>) ise yalnızca <code>-0x22de(r13) == 1</code> kontrolünden geçen <code>$36</code> download dalından (<code>0x007FB67C</code>) çağrılıyor. <code>$35 RequestUpload</code> sadece upload flag'ini (<code>-0x22dd(r13) = 1</code>) kurup <code>-0x22de(r13)</code> değerini <code>0</code> bıraktığı için backup alırken flash'ın silinme veya yazılma ihtimali yok.</p>
-
-        <h3 id="sbl-handoff">3.4 Boot → SBL geçişi ve 35 saniyelik OBD backup akışı <a class="heading-anchor" href="#sbl-handoff" aria-label="Bölüm 3.4"><span aria-hidden="true">#</span></a></h3>
-
-        <p>İki disassembly birleşince CAN HS (<code>0x7E0</code>/<code>0x7E8</code>, 500 kbit/s) üzerinde sorunsuz bir okuma/yazma akışı çıktı. Basit script'lerin SBL yükler yüklemez neden koptuğunu da Boot tarafındaki geçiş çözdü: Boot, <code>31 01 03 01 00 7F E2 54</code> komutunu alır almaz sıçramıyor; önce <code>0x02D528..0x02D558</code> post-TX hook'u üzerinden ISO-TP cevabının hattan çıkmasını bekliyor, sonra execution'ı <code>0x007FE254</code> adresine veriyor:</p>
-
-        <pre role="region" aria-label="Boot'tan SBL'ye geçiş ve Calibration okuma/yazma protokolü" tabindex="0"><code>1. App -&gt; Boot  : 10 02 (App 0x005A52D4'te motor-durgun kontrolü yapar, 7F 10 78 yollar, 0x0003FC00'e geçer)
-2. Boot Kilidi  : 27 01 -&gt; 27 02 &lt;key&gt; (0x022231 Boot Level 1 secret üzerinden hesaplanır)
-3. SBL Yükleme  : 3 VBF SRAM segmenti 34 00 44 -&gt; 36 &lt;seq&gt; -&gt; 37 ile gönderilir (0x973D / 0xDB76 / 0xFF00 doğrulanır)
-4. SBL Başlatma : 31 01 03 01 00 7F E2 54 (post-TX hook 0x02D528..0x02D558 TX bitince 0x007FE254'e geçer)
-5. Heartbeat    : 22 D1 00 -&gt; 62 D1 00 02
-6. Okuma ($35)  : 35 00 44 00 84 00 00 00 04 00 00 -&gt; 1.041 × 36 &lt;seq&gt; (252 B paketler, 256 KiB ~35 sn)
-                  -&gt; 37 ile dönen SBL CRC-16 yerel crc16_ccitt ile eşleştirilir (gerekirse App 1-3 de aynı yoldan)
-7. Yazma ($34)  : Offline Cks2/CVN/boot-tail denetimi -&gt; 31 01 FF 00 erase -&gt; 34 00 44 -&gt; 252 B 36 paketler
-                  -&gt; hem 37 hem 31 01 FF 01 CRC-16 onayı -&gt; 11 01 watchdog reset -&gt; Mode 09 06 CVN kontrolü</code></pre>
+        <pre role="region" aria-label="Boot'tan SBL'ye geçiş ve OBD okuma/yazma akışı" tabindex="0"><code>1. App -&gt; Boot  : 10 02 (0x005A52D4'te motor-durgun kontrolü -&gt; Bootloader'a geçer)
+2. Boot Kilidi  : 27 01 -&gt; 27 02 &lt;key&gt; (0x022231 Boot 5-byte secret, reversed byte sırası)
+3. SBL Yükleme  : 3 resmi VBF SRAM segmenti 34 -&gt; 36 -&gt; 37 ile yüklenir (CRC-16 doğrulamalı)
+4. SBL Başlatma : 31 01 03 01 00 7F E2 54 -&gt; heartbeat onayı 22 D1 00 -&gt; 62 D1 00 02
+5. Okuma ($35)  : 35 00 44 00 84 00 00 00 04 00 00 -&gt; 1.041 × 252 B paket (~35 sn) -&gt; 37 CRC-16
+6. Yazma ($34)  : Offline Cks2/CVN kontrolü -&gt; 31 01 FF 00 erase -&gt; 34/36/37 + FF 01 CRC-16 -&gt; 11 01 reset</code></pre>
       </section>
 
       <section id="audit" class="section-band">
         <div class="section-head">
-          <h2>4. Eski yazılımın 8.398 byte'lık analizi <a class="heading-anchor" href="#audit" aria-label="Bölüm 4 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <h2>3. Değişen 8.398 byte'ı denetlemek <a class="heading-anchor" href="#audit" aria-label="Bölüm 3 bağlantısı"><span aria-hidden="true">#</span></a></h2>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Resmi SBL üzerinden arabadaki <code>256 KiB</code> calibration bloğunu (~35 saniyede) çekip satın aldığımız <code>8G91-12K532-AC</code> stok <code>.FLS</code> dosyasının <code>0x040000–0x07FFFF</code> aralığıyla karşılaştırınca gerçeği gördük: araba DPF/EGR iptali dışında da hiç stok değildi. Application'dan çıkardığımız <code>4.784</code> PowerPC xref'iyle <code>sid206 audit</code> çalıştırıp değişen <strong>8.398 byte'ın tamamını</strong> tek tek eşledik; geriye tek bir belirsiz byte kalmadı:</p>
+        <p>Arabamızın <code>256 KiB</code> yedeğini stokla karşılaştırmak habersiz bir remap'i ortaya çıkardı. <code>4.784</code> PowerPC xref'iyle <code>sid206 audit</code>, değişen <strong>8.398 byte'ın tamamını</strong> sıfır belirsizle sınıflandırdı:</p>
 
         <figure class="wide">
           <div class="chart-frame">
@@ -381,41 +231,25 @@ No    Bölge                CPU Start .. End              Boyut
             </button>
           </div>
           <figcaption>
-            <span>Eski yazılımdaki tüm değişikliklerin map ya da firmware yaması karşılıkları.</span>
+            <span>Değişen 8.398 byte'ın tamamı tablo veya yamalara eşlendi.</span>
             <span class="zoom-hint">[büyütmek için tıklayın]</span>
           </figcaption>
         </figure>
 
-        <h3 id="silent-dtc">4.1 İki katmanlı r5 = 0 sessiz DTC iptali (57 gizli hata) <a class="heading-anchor" href="#silent-dtc" aria-label="Bölüm 4.1 bağlantısı"><span aria-hidden="true">#</span></a></h3>
+        <p><strong>Sessizce ölü 57 monitör:</strong> Arıza fonksiyonu <code>0x50A9AC</code> iki aşamalı çalışıyor — debounce matrisi (<code>0x048E84–0x049086</code>), 279 kayıtlık DTC tablosundan (<code>0x04ABC4</code>) <em>önce</em> <code>r5</code> artışını verir. <code>r5</code> sıfırlandığında DTC tablosu %100 stok görünürken hata sessizce ölür. Devre dışı <code>86</code> monitörün yalnızca <code>29</code>'u DTC tablosundaydı; <strong>57'si sessizce ölüydü</strong> — düşük ray basıncı (<code>P0087</code>; basınç düşüşünün neden yalnızca non-MIL <code>P0089</code> verdiğini açıklıyor), dört piezo enjektör, pedallar, fan, klima basıncı (<code>P14xx</code> yan hasarı), <code>12</code> CAN kodu ve CPU self-test <code>P0606</code> dâhil.</p>
 
-        <p>Arıza fonksiyonu <code>0x50A9AC</code>'yi disassemble edince, standart DTC tablosu karşılaştırmalarının otomatik DTC silici yazılımların verdiği hasarın yarısını neden göremediği ortaya çıktı. SID206 her hatayı iki katmanda işliyor:</p>
+        <p><strong>~%10 tork yalanı ve kaldırılan limitler:</strong> Yazılım <code>200 Nm</code> üstünde 20 Torque-to-IQ haritasını (<code>2.827</code> B) <code>+%8–10</code> şişirerek Aisin şanzımana CAN üzerinden torku <code>~%10</code> eksik bildiriyor ve sıcak rölantiyi bozuyordu. Ayrıca hararet kısılmasını (<code>0x0790E2</code>) sıfırlamış, sıcaklık/rakım limitlerini <code>450 Nm</code>'ye, limp-home'u <code>300 Nm</code>'ye düzlemiş, IAT/Baro limitlerini <code>100 °C</code>'de <code>+%15.1</code> artırmış ve <code>NTC Ch3</code> eğrisini (<code>115 → 205 °C</code>) bozmuştu.</p>
 
-        <ul>
-          <li><strong>Katman 1 — Debounce matrisi (<code>0x048E84–0x049086</code>):</strong> <code>0x50A9AC</code> handler'ına adım artışı (<code>r5</code>) ve eşik (<code>r6</code>) verir. <code>r5 = 0</code> yapıldığında <code>0x50AA70</code> / <code>0x50AAEC</code> hemen <code>fault_active = 0</code> yazıp çıkar.</li>
-          <li><strong>Katman 2 — DTC tablosu (<code>0x04ABC4–0x04CA48</code>):</strong> <code>279</code> OBD/Ford P-kodunu ve MIL/fault-class byte'ını tutar. Katman 1 <code>r5</code>'i sıfırladığında buraya hiç gelinmez.</li>
-        </ul>
-
-        <p>Kapatılan <code>86</code> monitör yolunun (<code>84</code> Application referanslı + <code>2</code> kullanılmayan yuva) yalnızca <code>29</code>'u Katman 2'de görünüyordu. Kalan <strong>57 kritik hata standart DTC editörlerinde %100 stok görünürken sessizce devre dışıydı</strong>: düşük ray basıncı (<code>P0087</code>, <code>0x048EE2</code>'de sessiz — bu yüzden yakıt basıncı düşüşleri sadece non-MIL <code>P0089</code> olarak yansıyordu), yakıt basınç sensörü (<code>P0190/91/94</code>), dört piezo enjektör (<code>P0201–04</code>, <code>P1201–04</code>, <code>P1551–54</code>), gaz pedalı sensörleri (<code>P2120–38</code>), radyatör fanı (<code>P0480</code>), klima basıncı (<code>P1461–63</code> — klasik bir <code>P14xx</code> toplu silme kazası), <code>12</code> ABS/şanzıman/çarpışma CAN hatası ve dahili işlemci hatası <code>P0606</code>.</p>
-
-        <h3 id="torque-lie">4.2 Kaymış Torque-to-IQ (~%10 şanzıman yalanı) ve kapatılan korumalar <a class="heading-anchor" href="#torque-lie" aria-label="Bölüm 4.2 bağlantısı"><span aria-hidden="true">#</span></a></h3>
-
-        <ul>
-          <li><strong>Kaymış Torque-to-IQ haritaları (<code>2.827</code> byte / 20 harita):</strong> Gerçek tork limitörlerini doğru ayarlamak yerine <code>200 Nm</code> üstünde 20 Torque-to-IQ tablosu <code>+%8–10</code> yukarı kaydırılmış. Motor yakıtı verirken 6 ileri Aisin şanzımana gerçek torktan yaklaşık <code>%10</code> eksik tork bildiriliyordu.</li>
-          <li><strong>Kapatılan korumalar (<code>1.266</code> byte) + NTC hatası:</strong> Hararet tork düşürmesi (<code>0x0790E2</code>, caller <code>0x5C70F8</code>) sıfırlanmış; sıcaklık (<code>0x07932A</code>) ve rakım (<code>0x07909A</code>) limitörleri düz <code>450 Nm</code>'ye, limp-home haritası (<code>0x07B244</code>) düz <code>300 Nm</code>'ye çekilmiş. Turbo limitörleri <code>100 °C</code> emme sıcaklığında bile <code>+%15.1</code> açılmış ve yanlış bir byte değişikliği <code>NTC Ch3</code> eğrisini (<code>0x048476</code>) <code>115 °C → 205 °C</code> olarak bozmuştu.</li>
-        </ul>
-
-        <p>Arabayı aldığımda DPF ve EGR fiziksel olarak önceki sahibi tarafından zaten iptal edilmişti; bu repo da bilerek hiçbir emisyon iptal aracı ya da kalibrasyon oluşturucu dağıtmıyor. Üzerindeki yazılımla ilgili asıl sorun, otomatik bir DTC silme aracının bu arada <code>57</code> alakasız motor, enjektör, yakıt basıncı, pedal, fan, CAN ve CPU güvenlik kontrolünü de kapatıp hararet/rakım korumalarını kaldırmış olmasıydı. Güç açmadan önce saf stok tabloları geri yükledim, yalnızca araçtaki mevcut fiziksel donanıma uyan ayarları bıraktım (emisyon donanımı geri takılırsa tam fabrika ayarlarına dönebilecek şekilde), tüm güvenlik monitörlerini yeniden açtım ve stok Torque-to-IQ hesabına dönünce sıcak rölantinin <code>5.2 RPM</code> standart sapmayla belirgin şekilde yumuşadığını gördüm. (Tam ofset dökümü <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> dosyasında.)</p>
+        <p>DPF ve EGR önceki sahibi tarafından fiziksel olarak sökülmüştü; bu repo da hiçbir emisyon iptal aracı ya da kalibrasyon oluşturucu dağıtmıyor. Güç açmadan önce saf stok tabloları yükledim, yalnızca araçtaki mevcut donanıma uyan ayarları bıraktım (donanım geri takılırsa kolayca OEM'e dönebilir), 57 güvenlik monitörünün tamamını geri açtım ve sıcak rölantinin <code>5.2 RPM</code> std sapmaya indiğini gördüm. (<a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">Tam döküm</a>.)</p>
       </section>
 
       <section id="road-logging" class="section-band">
         <div class="section-head">
-          <h2>5. Yol telemetrisi: statik analizin göremediği iki bulgu <a class="heading-anchor" href="#road-logging" aria-label="Bölüm 5 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <h2>4. Yolda yakalanan iki hata <a class="heading-anchor" href="#road-logging" aria-label="Bölüm 4 bağlantısı"><span aria-hidden="true">#</span></a></h2>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Standart OBD PID hızıyla (~5–10 Hz) tam gaz vites geçişindeki anlık ray basıncı düşüşlerini ya da tork konvertörü kaymasını yakalayamazsınız. Bölüm 2.4'te doğruladığımız <code>$23</code> SRAM pencerelerini ve <code>TF-80SC</code> şanzıman sorgularını birleştiren logger'larla (<code>sid206 log-tcm</code> ~4.9 Hz, <code>sid206 log-rail</code> ~10–11 Hz) yola çıkınca statik tablo incelemesinin göstermediği iki gerçek ortaya çıktı.</p>
-
-        <h3 id="fuel-pump">5.1 Stok yakıt pompası limiti (v2 vs v2.1) <a class="heading-anchor" href="#fuel-pump" aria-label="Bölüm 5.1 bağlantısı"><span aria-hidden="true">#</span></a></h3>
+        <p>Standart OBD PID'leri (~5–10 Hz) hızlı düşüşleri ve lockup kaymasını kaçırır. <code>$23</code> SRAM pencerelerini eşzamanlı <code>TF-80SC</code> şanzıman verisiyle loglamak statik analizin kaçırdığı iki hatayı ortaya çıkardı.</p>
 
         <figure class="wide">
           <div class="chart-frame">
@@ -436,16 +270,12 @@ No    Bölge                CPU Start .. End              Boyut
             </button>
           </div>
           <figcaption>
-            <span>Doğrudan SRAM telemetrisi, yakıt talebi donanım sınırına çekilmeden önce 80 bar üstü 118 basınç düşüşü yakaladı.</span>
+            <span>SRAM telemetrisi, yakıt pompa sınırına çekilmeden önce &gt;80 bar'lık 118 ray düşüşü yakaladı.</span>
             <span class="zoom-hint">[büyütmek için tıklayın]</span>
           </figcaption>
         </figure>
 
-        <p>İlk tam güç denememde (<code>v2</code>) 300.000 km'deki yüksek basınç pompasından <code>1.600 bar</code>'da <code>75–79 mg/stroke</code> yakıt isteyince mekanik debi sınırına takıldık. Tam gaz ölçümlerinde ray basıncı <code>118</code> kez hedefin <code>80 bar</code> altına düştü (<code>2.900 RPM</code> civarında <code>-195 bar</code>'a kadar çökerek orta devirde belirgin bir boşluk açtı).</p>
-
-        <p>Tepe yakıtı <code>70.5–72 mg/stroke</code> seviyesine (<code>v2.1</code>) çekince pompa <code>1.600 bar</code> hedefini rahatça tutmaya başladı. <code>80 bar</code> üstü düşüşler <code>118</code>'den <code>1</code>'e indi (<code>100 bar</code> üstü sıfır) ve <code>2.875 RPM</code> dilimindeki road dyno gücü <code>103.5 PS</code>'ten doğrudan <code>125.6 PS</code>'e çıkıp <code>3.375 RPM</code>'de <code>131.5 PS</code> oldu.</p>
-
-        <h3 id="auto-pedal">5.2 Drive modunda devreye giren pedal haritası (0x07873E) <a class="heading-anchor" href="#auto-pedal" aria-label="Bölüm 5.2 bağlantısı"><span aria-hidden="true">#</span></a></h3>
+        <p><strong>Stok yakıt pompası tavanı (v2 vs v2.1):</strong> <code>1.600 bar</code>'da <code>75–79 mg/stroke</code> istemek 300.000 km'deki pompanın orta devir debisini aştı: ray basıncı <code>118</code> kez hedefin <code>&gt;80 bar</code> altına düştü (<code>2.900 RPM</code> civarında <code>-195 bar</code>). Tepe yakıtı <code>70.5–72 mg/stroke</code>'a çekmek <code>&gt;80 bar</code> düşüşleri <code>118</code>'den <code>1</code>'e indirdi (<code>100 bar</code> üstü sıfır) ve <code>2.875 RPM</code> gücünü <code>103.5</code>'ten <code>125.6 PS</code>'e çıkardı (<code>3.375 RPM</code>'de <code>131.5 PS</code>).</p>
 
         <figure class="wide">
           <div class="chart-frame">
@@ -466,39 +296,37 @@ No    Bölge                CPU Start .. End              Boyut
             </button>
           </div>
           <figcaption>
-            <span>Otomatik şanzıman Drive konumundayken standart Driver's Wish haritaları yerine <code>0x07873E</code> Pedal-Hız tablosu devreye giriyor.</span>
+            <span>Otomatik Drive konumunda standart pedal haritaları yerine <code>0x07873E</code> tablosu devreye giriyor.</span>
             <span class="zoom-hint">[büyütmek için tıklayın]</span>
           </figcaption>
         </figure>
 
-        <p>Ara kalibrasyonlarla oynarken çıktığım bir otoban testinde, altı standart Driver's Wish pedal haritasını (<code>0x051AE0–0x0524E0</code>) düzenlemiş olmama rağmen yarı gaz tepkisi değişmedi ve o sürüş yavaş kaldı (eski yazılımdan değil, kendi ara denememizden). Tekrar PowerPC disassembly'sine dönünce sebebi belli oldu: <code>0x5CF024</code> caller'ı şanzımana bakıyor ve otomatik araç Drive'dayken altı standart haritayı atlayıp doğrudan <code>0x07873E</code>'deki <code>16×16</code> Pedal-vs-Speed tablosunu okuyor. Üstelik bu tablo fabrikadan <code>180 km/h</code> üstünde tam gaz talebini <code>%25–32</code> düşürüyor.</p>
-
-        <p><code>0x07873E</code> haritasını %100 doğru şanzıman tork hesabıyla düzeltince otoban tepkisi toparlandı (<code>~2.000 RPM</code> ve <code>%38–55</code> pedalda <code>33–42 mg/stroke</code>'tan <code>40–57 mg/stroke</code>'a çıktı). Ankara'da <code>80–120 km/h</code> süresi <code>10.3 sn</code>'den <code>7.2–7.8 sn</code>'ye indi (<code>60–100 km/h</code> <code>5.8 sn</code>, turbo dolumu <code>~1.1 sn</code>). İstanbul'a inince de fabrikanın rakım tablolarının deniz seviyesinde kendiliğinden <code>~190 PS</code> ürettiğini doğruladık.</p>
+        <p><strong>Otomatik Drive pedal override'ı (<code>0x07873E</code>):</strong> Ara bir yazılımla çıktığım otoban testinde altı Driver's Wish pedal haritasını (<code>0x051AE0–0x0524E0</code>) düzenlemek kısmi gazda hiçbir fark yaratmadı ve sürüş cansız kaldı. Disassembly, <code>0x5CF024</code> caller'ının otomatik Drive'da bunları yok sayıp <code>0x07873E</code>'deki <code>16×16</code> Pedal-vs-Speed tablosunu okuduğunu gösterdi (<code>180 km/h</code> üstünde <code>%25–32</code> kısma da burada). Dürüst 1:1 tork matematiğiyle düzenleyince Ankara <code>80–120 km/h</code> stok <code>10.3 sn</code>'den <code>7.2–7.8 sn</code>'ye indi (<code>60–100</code>: <code>5.8 sn</code>) ve İstanbul sürüşü deniz seviyesinde <code>~190 PS</code>'i doğruladı.</p>
       </section>
 
       <section id="ai" class="section-band">
         <div class="section-head">
-          <h2>6. Günlük kullandığın arabanın ECU'sunda AI kullanmak <a class="heading-anchor" href="#ai" aria-label="Bölüm 6 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <h2>5. Brick edilemeyecek kodda AI <a class="heading-anchor" href="#ai" aria-label="Bölüm 5 bağlantısı"><span aria-hidden="true">#</span></a></h2>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Buradaki iş akışının yürümesini sağlayan şey, tersine mühendislikteki mekanik hamallığı AI'ya verirken her kritik adımı deterministik kontrollerle doğrulamaktı. <code>2 MiB</code> PowerPC disassembly'sini okunabilir C mantığına dökmek, <code>8.398</code> byte farkı <code>4.784</code> xref'le eşlemek ve <code>0x5CF024 → 0x07873E</code> pointer'ını bulmak tek başına haftalar sürerdi.</p>
+        <p>Bu süreç, yüksek hacimli tersine mühendislik hamallığını AI üstlenirken deterministik kod ve donanım kontrollerinin katı birer emniyet kapısı görevi görmesi sayesinde yürüdü. <code>2 MiB</code> PowerPC assembly'sini çözmek, <code>8.398</code> byte'ı <code>4.784</code> xref'le eşleştirmek ve <code>0x5CF024 → 0x07873E</code> yolunu bulmak tek başına haftalar sürerdi.</p>
 
-        <p>Ama günlük bindiğin arabaya flash atarken bir LLM'in adres, endianness ya da checksum tahminine güvenemezsin. Her iddia doğrudan MPC561 assembly satırlarıyla doğrulandı; flash script'i CAN'ı açmadan önce offline <code>CRC-32/MPEG-2</code> ve <code>Cks2</code> kontrollerini zorunlu tuttu ve o <code>118</code> pompa düşüşü gibi donanım sınırlarını yalnızca canlı SRAM logları gösterdi.</p>
+        <p>Tersine, kendi arabanıza flash atmadan önce bir LLM'in ofset, endianness veya checksum tahmin etmesine asla izin verilmez. İddia edilen her tablo doğrulanmış MPC561 assembly'sine dayandırıldı; flash aracımız offline <code>CRC-32/MPEG-2</code> ve <code>Cks2</code> kontrollerini zorunlu tutuyor ve canlı SRAM logları statik kodun asla göstermediği pompa sınırlarını yakaladı.</p>
       </section>
 
       <section id="repo" class="section-band">
         <div class="section-head">
-          <h2>7. Kod ve teknik dokümantasyon <a class="heading-anchor" href="#repo" aria-label="Bölüm 7 bağlantısı"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ dizin</a>
+          <h2>6. Kod ve detaylı dokümantasyon <a class="heading-anchor" href="#repo" aria-label="Bölüm 6 bağlantısı"><span aria-hidden="true">#</span></a></h2>
+          <a class="back-top" href="#contents">↑ içindekiler</a>
         </div>
 
-        <p>Tüm tersine mühendislik tarayıcıları, resmi SBL backup/write araçları, <code>$23</code> SRAM + <code>TF-80SC</code> logger'ları, road dyno analizleri ve offline unit/hygiene testleri <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a> deposunda yer alıyor. Telifli OEM imajları, kişisel sürüş logları, VIN/seri numaraları ve çıkarılmış 5-byte secret'lar depoya konmadı.</p>
+        <p>Tüm tarayıcılar, resmi SBL okuma/yazma araçları, <code>$23</code> SRAM + <code>TF-80SC</code> logger'ları, road dyno script'leri ve offline testler <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a> deposunda (OEM binary, sürüş logu, VIN, seri no ve secret içermez).</p>
 
         <ul>
           <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/README.md">README.md</a> — kurulum, güvenlik kilitleri ve CLI örnekleri (<code>sid206 obd|re|audit|backup|flash|log-tcm|dyno</code>)</li>
           <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a> — tam <code>MPC561</code> memory map, CVN, <code>$27/$23/$31</code> tabloları ve DTC yapısı</li>
-          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> — <code>6G91-14C273-DH.vbf</code> SBL disassembly, scheduler ve call-graph kanıtı</li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> — <code>6G91-14C273-DH.vbf</code> SBL disassembly, scheduler, dispatch tablosu ve call-graph kanıtı</li>
           <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> — <code>8.398</code> byte'lık analizin tamamı ve TunerPro map ofset tablosu</li>
         </ul>
       </section>
