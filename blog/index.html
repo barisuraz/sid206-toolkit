@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi</title>
-  <meta name="description" content="Reversing the Siemens SID206 MPC561 PowerPC firmware and Ford's official Secondary Bootloader to dump flash over OBD, uncover 57 silent fault kills and a gearbox torque lie, and tune cleanly to ~190 PS.">
+  <meta name="description" content="Buying a matching 2 MiB stock SID206 MPC561/MPC562 PowerPC flash, reversing Ford's official Secondary Bootloader to dump our car's 256 KiB calibration over OBD, uncovering 57 silent fault kills, and tuning cleanly to ~190 PS.">
   <meta name="author" content="Baris Uraz">
   <link rel="canonical" href="https://barisuraz.github.io/sid206-toolkit/">
   <link rel="alternate" hreflang="en" href="https://barisuraz.github.io/sid206-toolkit/">
@@ -17,7 +17,7 @@
   <meta property="og:locale:alternate" content="tr_TR">
   <meta property="og:site_name" content="sid206-toolkit">
   <meta property="og:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
-  <meta property="og:description" content="Reversing SID206 MPC561 firmware and Ford's official Secondary Bootloader (6G91-14C273-DH) to dump 2 MiB flash over OBD, audit 8,398 changed bytes, and build a ~190 PS calibration.">
+  <meta property="og:description" content="Reversing a stock 2 MiB SID206 PowerPC binary and Ford's official SBL to dump our car's 256 KiB calibration over OBD, audit 8,398 changed bytes, and build a ~190 PS calibration.">
   <meta property="og:url" content="https://barisuraz.github.io/sid206-toolkit/">
   <meta property="og:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
   <meta property="og:image:width" content="2520">
@@ -26,7 +26,7 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
-  <meta name="twitter:description" content="Reversing SID206 PowerPC firmware and Ford's official SBL to dump 2 MiB over OBD, audit 8,398 bytes against stock, and tune cleanly to ~190 PS.">
+  <meta name="twitter:description" content="Reversing SID206 MPC561/MPC562 firmware and Ford's official SBL to dump our 256 KiB calibration over OBD, audit 8,398 bytes against stock, and tune cleanly to ~190 PS.">
   <meta name="twitter:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f4c81'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%23ffffff'%3ESID%3C/text%3E%3C/svg%3E">
@@ -62,9 +62,9 @@
         <span>Siemens SID206 · MPC561 PowerPC &amp; SBL reverse engineering</span>
       </p>
 
-      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed Aisin <code>TF-80SC</code> automatic) with around 300,000 km on the clock. The DPF and EGR valve had already been physically removed, and an unknown prior remap was on the ECU. I bought the car thinking the injectors were healthy; after having them tested on a bench, all four piezo injectors turned out worn out and had to be replaced.</p>
+      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed Aisin <code>TF-80SC</code> automatic) with around 300,000 km on the clock. I bought it thinking the injectors were healthy and that the ECU was stock aside from a physical DPF and EGR delete. After getting the injectors tested on a bench, all four piezo injectors were worn out and had to be replaced.</p>
 
-      <p>Even on four new injectors, warm idle stayed rough, and a deeper UDS <code>$19 02</code> diagnostic scan caught a <code>P0089</code> fuel-pressure fault while generic OBD scanners showed no check-engine light and zero stored codes. To find out what the mystery remap had actually changed, I reversed both the <code>SID206</code> PowerPC firmware and Ford's official Secondary Bootloader to pull a clean <code>2 MiB</code> dump over OBD on a Mac, audited all <code>8,398</code> changed bytes against a clean stock binary, wiped the broken patches, and built a clean <code>~190 PS</code> tune verified with direct SRAM road logs.</p>
+      <p>Even on four new injectors, warm idle stayed rough, and a deeper UDS <code>$19 02</code> scan caught a <code>P0089</code> fuel-pressure fault while generic OBD readers showed no check-engine light and zero stored codes. To find out what was actually flashed onto the car, I bought a matching <code>2 MiB</code> stock <code>SID206</code> binary online, reversed both the PowerPC firmware and Ford's official Secondary Bootloader (SBL) to dump our car's <code>256 KiB</code> calibration over OBD on a Mac, discovered an undisclosed messy remap hidden inside it, wiped those patches, and built a clean <code>~190 PS</code> tune verified with direct SRAM road logs.</p>
 
       <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
         <p id="toc-heading" class="toc-heading">Contents</p>
@@ -73,7 +73,7 @@
           <li>
             <a href="#firmware-re">2. Reversing the SID206 firmware</a>
             <ol>
-              <li><a href="#memory-map">2.1 Debunking the TriCore myth &amp; 2 MiB MPC561 memory map</a></li>
+              <li><a href="#memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map</a></li>
               <li><a href="#checksums">2.2 Checksums: CRC-32/MPEG-2 CVNs and the live Cks2 monitor</a></li>
               <li><a href="#seedkey">2.3 Cracking $27 SecurityAccess (24-bit LFSR, reversed bytes &amp; GF(2))</a></li>
               <li><a href="#sram-read">2.4 Why $23 ReadMemoryByAddress won't dump flash (and what it exposes)</a></li>
@@ -201,11 +201,11 @@
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
-        <p>Generic hobbyist OBD flashers usually pull only the <code>256 KiB</code> calibration slice and never show you the executable code where fault-suppression hacks, runtime checksum monitors, and automatic-gearbox torque routing actually live. Opening a 15-year-old sealed aluminum ECU on a workbench risks cracking traces off the board, so everything below started with getting full visibility into a reference <code>2 MiB</code> image and talking cleanly to the live car over CAN via a Tactrix OpenPort 2.0 on macOS (Apple Silicon).</p>
+        <p>Generic hobbyist OBD tools usually only touch the calibration block without exposing how the executable firmware handles fault suppression, runtime checksum monitors, and automatic-gearbox torque routing. Opening a 15-year-old sealed aluminum ECU on a workbench risks cracking traces off the board, so first I bought a matching <code>2 MiB</code> stock <code>.FLS</code> dump online (<code>8G91-12K532-AC</code>) to study the complete Bootloader and Application code offline, before building a Mac OBD client over a Tactrix OpenPort 2.0 J2534 cable to read and write our car's <code>256 KiB</code> calibration safely.</p>
 
-        <h3 id="memory-map">2.1 Debunking the TriCore myth &amp; 2 MiB MPC561 memory map</h3>
+        <h3 id="memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map</h3>
 
-        <p>Disassembling the <code>8G91-12K532-AC</code> image immediately disproved two things routinely repeated on tuning forums. First, there is <strong>no Infineon TriCore</strong> inside SID206 (TriCore <code>TC1797</code> arrived on later <code>SID208</code> ECUs): the binary is <strong>32-bit big-endian Motorola/Freescale <code>MPC561/MPC562</code> PowerPC</strong> running the <code>ERCOSEK V4.1.16 MPC555</code> RTOS (version string verbatim at <code>0x0AAB67</code>). Second, <code>7G91-14C275-AA</code> is not an aftermarket remap artifact — it sits verbatim at <code>0x183396</code> inside the stock factory flash as Block 4's CALID.</p>
+        <p>The <code>8G91-12K532-AC</code> binary runs on a <strong>32-bit big-endian Motorola/Freescale <code>MPC561/MPC562</code> PowerPC</strong> CPU under the <code>ERCOSEK V4.1.16 MPC555</code> RTOS (version string verbatim at <code>0x0AAB67</code>), with factory Block 4 CALID <code>7G91-14C275-AA</code> sitting at flash offset <code>0x183396</code>.</p>
 
         <p>One hardware trap worth flagging up front: external serial EEPROM (<code>.EPR</code>) dumps from another SID206 carry vehicle-specific PATS immobiliser keys, VIN, and injector trims — flashing a donor EEPROM bricks cranking, so only flash (<code>.FLS</code>) blocks serve as software reference. Across the <code>2 MiB</code> (<code>0x200000</code>) flash layout, PowerPC SDA/SDA2 base pointers split memory cleanly into four physical and virtual regions:</p>
 
@@ -278,7 +278,7 @@
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
-        <p>With Application <code>$23</code> blocked from reading flash, dumping the full <code>2 MiB</code> image over OBD normally requires uploading a custom RAM payload into MPC561 SRAM via Boot session (<code>10 02</code>) — and a subtle bug in SRAM shellcode while touching flash peripherals is a good way to turn an ECU into a paperweight. Instead, I noticed the Boot block at <code>0x004290</code> directly names Ford's own factory Secondary Bootloader (<code>6G91-14C273-DH.vbf</code>), unpacked it (<code>file_checksum = 0xAD9CAEDD</code>), and disassembled every function in the resulting 32 KiB SRAM image.</p>
+        <p>With Application <code>$23</code> blocked from reading flash, reading our car's <code>256 KiB</code> calibration block cleanly over OBD normally requires uploading a custom RAM payload into MPC561 SRAM via Boot session (<code>10 02</code>) — and a subtle bug in SRAM shellcode while touching flash peripherals is a good way to turn an ECU into a paperweight. Instead, I noticed the Boot block inside our stock <code>2 MiB</code> file directly names Ford's own factory Secondary Bootloader (<code>6G91-14C273-DH.vbf</code> at <code>0x004290</code>), unpacked it (<code>file_checksum = 0xAD9CAEDD</code>), and disassembled every function in the resulting 32 KiB SRAM image.</p>
 
         <h3 id="sbl-startup">3.1 Startup, IMMR peripheral remapping, and the 10 ms watchdog</h3>
 
@@ -341,7 +341,7 @@ Idx   Region               CPU Start .. End              Size
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
-        <p>With a clean live OBD dump in hand, I purchased an unmodified stock binary matching <code>8G91-12K532-AC</code> and built <code>sid206 audit</code> using the <code>4,784</code> disassembled PowerPC cross-references to classify every single difference. Out of <strong>8,398 changed bytes</strong>, exactly zero bytes remained unexplained:</p>
+        <p>Once we dumped our car's <code>256 KiB</code> calibration block over OBD (~35 seconds via the SBL) and diffed it against offsets <code>0x040000–0x07FFFF</code> of the stock <code>8G91-12K532-AC</code> <code>.FLS</code> image, it turned out the car wasn't stock aside from DPF/EGR delete at all — someone had flashed an undisclosed remap onto it. Using <code>sid206 audit</code> and the <code>4,784</code> disassembled PowerPC cross-references, all <strong>8,398 changed bytes</strong> were classified with zero bytes left unexplained:</p>
 
         <figure class="wide">
           <div class="chart-frame">
