@@ -1,4 +1,4 @@
-# Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi
+# Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself
 
 I bought a 2011 Ford Mondeo Mk4.5 estate (`2.0 TDCi`, 130 PS factory, 6-speed Aisin `TF-80SC` automatic) with around 300,000 km on the clock. I bought it thinking the injectors were healthy and that the ECU was stock aside from a physical DPF and EGR delete. After getting the injectors tested on a bench, all four piezo injectors were worn out and had to be replaced.
 

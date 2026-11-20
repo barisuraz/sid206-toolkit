@@ -4,7 +4,7 @@ Python tools for reading, auditing, logging, and flashing Siemens SID206 ECUs ov
 
 Tested on macOS (Apple Silicon) with a Tactrix OpenPort 2.0 via [`bisak/openport-j2534`](https://github.com/bisak/openport-j2534).
 
-> **Write-up:** **[Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi](https://barisuraz.github.io/sid206-toolkit/)** · **[Türkçe (TR)](https://barisuraz.github.io/sid206-toolkit/tr/)** · ([Markdown source](blog/post.md))
+> **Write-up:** **[Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself](https://barisuraz.github.io/sid206-toolkit/)** · **[Türkçe (TR)](https://barisuraz.github.io/sid206-toolkit/tr/)** · ([Markdown source](blog/post.md))
 
 ---
 
