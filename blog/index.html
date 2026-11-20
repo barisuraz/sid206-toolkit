@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself</title>
-  <meta name="description" content="Buying a matching 2 MiB stock SID206 MPC561/MPC562 PowerPC flash, reversing Ford's official Secondary Bootloader to dump our car's 256 KiB calibration over OBD, uncovering 57 silent fault kills, and tuning cleanly to ~190 PS.">
+  <title>Overclocking my car: reverse-engineering a Ford ECU from 130 to 190 HP</title>
+  <meta name="description" content="Buying a matching 2 MiB stock SID206 PowerPC flash, reversing Ford's official Secondary Bootloader to dump my car's 256 KiB calibration over OBD on a Mac, uncovering 57 silently disabled fault monitors, and tuning cleanly to ~190 PS (~187 HP).">
   <meta name="author" content="Baris Uraz">
   <link rel="canonical" href="https://barisuraz.github.io/sid206-toolkit/">
   <link rel="alternate" hreflang="en" href="https://barisuraz.github.io/sid206-toolkit/">
@@ -18,8 +18,8 @@
   <meta property="og:locale" content="en_US">
   <meta property="og:locale:alternate" content="tr_TR">
   <meta property="og:site_name" content="sid206-toolkit">
-  <meta property="og:title" content="Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself">
-  <meta property="og:description" content="Reversing a stock 2 MiB SID206 PowerPC binary and Ford's official SBL to dump our car's 256 KiB calibration over OBD, audit 8,398 changed bytes, and build a ~190 PS calibration.">
+  <meta property="og:title" content="Overclocking my car: reverse-engineering a Ford ECU from 130 to 190 HP">
+  <meta property="og:description" content="Reversing a stock 2 MiB SID206 PowerPC binary and Ford's official bootloader to dump my car's 256 KiB calibration over OBD, audit 8,398 changed bytes, and tune cleanly to ~190 PS (~187 HP).">
   <meta property="og:url" content="https://barisuraz.github.io/sid206-toolkit/">
   <meta property="og:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
   <meta property="og:image:width" content="2520">
@@ -27,8 +27,8 @@
   <meta property="og:image:alt" content="Four-stage road dyno progression in Ankara comparing stock baseline, intermediate pump-limited tune, and final tune curves">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself">
-  <meta name="twitter:description" content="Reversing SID206 MPC561/MPC562 firmware and Ford's official SBL to dump our 256 KiB calibration over OBD, audit 8,398 bytes against stock, and tune cleanly to ~190 PS.">
+  <meta name="twitter:title" content="Overclocking my car: reverse-engineering a Ford ECU from 130 to 190 HP">
+  <meta name="twitter:description" content="Reversing SID206 MPC561/MPC562 firmware and Ford's bootloader to dump my 256 KiB calibration over OBD, audit 8,398 bytes against stock, and tune cleanly to ~190 PS (~187 HP).">
   <meta name="twitter:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f4c81'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%23ffffff'%3ESID%3C/text%3E%3C/svg%3E">
@@ -57,7 +57,7 @@
 
   <main>
     <article class="grid-band">
-      <h1>Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself</h1>
+      <h1>Overclocking my car: reverse-engineering a Ford ECU from 130 to 190 HP</h1>
       <p class="meta-line">
         <span>By Baris Uraz</span>
         <span aria-hidden="true">·</span>
@@ -68,9 +68,9 @@
         <span>Siemens SID206 · MPC561 PowerPC</span>
       </p>
 
-      <p>Dumping my car's <code>256 KiB</code> ECU calibration over OBD and diffing it against stock exposed <strong>57 silently disabled fault monitors</strong> — including low rail pressure (<code>P0087</code>), all four piezo injectors, pedals, cooling fan, and CPU self-test (<code>P0606</code>) — plus fueling tables under-reporting torque by <strong>~10%</strong> to the automatic gearbox and four stripped engine-protection limiters.</p>
+      <p>Dumping my car's <code>256 KiB</code> ECU calibration over OBD and diffing it against stock turned up <strong>57 silently disabled fault monitors</strong>, including low fuel rail pressure (<code>P0087</code>), all four piezo injectors, accelerator pedals, cooling fan, and internal CPU self-test (<code>P0606</code>). On top of that, the fueling tables were skewed to under-report torque by <strong>~10%</strong> to the 6-speed automatic gearbox, and four engine-protection limiters had been stripped out.</p>
 
-      <p>It's a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS stock, Aisin <code>TF-80SC</code> auto, ~300,000 km) I bought thinking the injectors were fine and the ECU was stock aside from a prior owner's DPF/EGR delete. It pulled fine, though bench testing later forced replacing all four injectors and a UDS <code>$19 02</code> scan found a non-MIL <code>P0089</code>. I bought a matching <code>2 MiB</code> stock binary online, reversed its PowerPC firmware and Ford's bootloader on a Mac, restored the protections, and tuned it cleanly to <code>~190 PS</code>.</p>
+      <p>The car is a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS stock, Aisin <code>TF-80SC</code> automatic, ~300,000 km). I bought it thinking the injectors were healthy and the ECU was stock aside from a previous owner's physical DPF and EGR delete. It pulled fine on the road, though bench testing later forced replacing all four injectors and a deep UDS <code>$19 02</code> scan found a <code>P0089</code> fuel-pressure fault that never lit the check-engine light. To see what was actually running on the ECU, I bought a matching <code>2 MiB</code> stock binary online, reversed its PowerPC firmware and Ford's bootloader on a Mac, restored the missing protections, and tuned it cleanly to <code>~190 PS (~187 HP)</code>.</p>
 
       <figure class="photo-figure">
         <div class="photo-frame">
@@ -85,25 +85,129 @@
         <figcaption>The car: 2011 Ford Mondeo Mk4.5 2.0 TDCi estate (~300,000 km).</figcaption>
       </figure>
 
-      <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
-        <p id="toc-heading" class="toc-heading">Contents</p>
-        <ol>
-          <li><a href="#results">1. Results</a></li>
-          <li><a href="#re-and-sbl">2. Reversing the firmware &amp; bootloader</a></li>
-          <li><a href="#audit">3. Auditing 8,398 changed bytes</a></li>
-          <li><a href="#road-logging">4. Two bugs caught on the road</a></li>
-          <li><a href="#ai">5. AI on a binary you can't brick</a></li>
-          <li><a href="#repo">6. Code &amp; deep-dive docs</a></li>
-        </ol>
-      </nav>
+      <section id="re-and-sbl" class="section-band">
+        <div class="section-head">
+          <h2>1. Cracking the firmware and Ford's bootloader <a class="heading-anchor" href="#re-and-sbl" aria-label="Link to section 1"><span aria-hidden="true">#</span></a></h2>
+        </div>
+
+        <p>Prying open a 15-year-old sealed aluminum ECU risks cracking the board, so I bought a matching <code>2 MiB</code> stock <code>.FLS</code> dump (<code>8G91-12K532-AC</code>) online to study the <strong>32-bit big-endian <code>MPC561/MPC562</code> PowerPC</strong> firmware offline. (Never flash a donor <code>.EPR</code> EEPROM; that holds vehicle-specific PATS immobilizer keys, VIN, and injector trims.) Disassembly mapped all four memory regions: <code>256 KiB</code> Bootloader, <code>256 KiB</code> Calibration at <code>0x040000</code>, <code>1.3 MiB</code> Application, and <code>32 KiB</code> internal SRAM. It also verified the <code>CRC-32/MPEG-2</code> checksums bit-for-bit and caught a live runtime checksum (<code>Cks2</code>, caller <code>0x562E0C</code>) that continuously hashes <code>0x040240–0x040544</code> while driving. Touching those bytes faults the ECU even if the header CVN checks out.</p>
+
+        <p>Boot flashing (<code>10 02</code>) and RAM reads (<code>10 03</code> Level <code>0x03</code>) sit behind UDS <code>$27 SecurityAccess</code>, a 24-bit Galois LFSR over <code>[seed(3), secret(5)]</code>. Public Ford scripts fail here because the ECU loads the 5-byte secret in reverse byte order. Since shifting over <code>GF(2)</code> is linear, observing even one valid CAN challenge-response pair recovers the 5-byte secret in milliseconds. Unlocking Level <code>0x03</code> opened <code>$23 ReadMemoryByAddress</code>, though its whitelist (<code>0x1A565C</code>) rejects every flash address with <code>NRC 0x31</code> and only exposes two internal SRAM windows. That killed the easy backup path, but gave me fast road telemetry later.</p>
+
+        <p>Instead of writing custom PowerPC shellcode to read flash and risking a brick on my daily driver, I unpacked Ford's official Secondary Bootloader named inside Boot (<code>6G91-14C273-DH.vbf</code> at <code>0x004290</code>). Disassembling that <code>32 KiB</code> RAM image was the turning point of the project: Ford's own unmodified bootloader natively implements <strong>UDS <code>$35 RequestUpload</code></strong> (flash read) right alongside <strong><code>$34 RequestDownload</code></strong> (flash write). Static call-graph analysis proved <code>flash_erase</code> (<code>0x007FCA84</code>) and <code>flash_write</code> (<code>0x007FC920</code>) are unreachable from the <code>$35</code> read path. With that verified, a small Python script on my Mac over a Tactrix OpenPort 2.0 cable dumped my car's entire <code>256 KiB</code> calibration in <strong>~35 seconds</strong> with CRC-16 checks. (Full notes in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">firmware-re.md</a> and <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">sbl-re.md</a>.)</p>
+
+        <pre role="region" aria-label="Boot to SBL handoff and OBD backup/write sequence" tabindex="0"><code>1. App -&gt; Boot  : 10 02 (engine-off check @ 0x005A52D4 -&gt; jumps to Bootloader)
+2. Unlock Boot  : 27 01 -&gt; 27 02 &lt;key&gt; (Boot 5-byte secret @ 0x022231, reversed bytes)
+3. Load SBL     : Upload 3 official VBF SRAM segments via 34 -&gt; 36 -&gt; 37 (CRC-16 verified)
+4. Start SBL    : 31 01 03 01 00 7F E2 54 -&gt; confirm heartbeat 22 D1 00 -&gt; 62 D1 00 02
+5. Read ($35)   : 35 00 44 00 84 00 00 00 04 00 00 -&gt; 1,041 × 252 B chunks (~35 s) -&gt; 37 CRC-16
+6. Write ($34)  : Offline Cks2/CVN check -&gt; 31 01 FF 00 erase -&gt; 34/36/37 + FF 01 CRC-16 -&gt; 11 01 reset</code></pre>
+      </section>
+
+      <section id="audit" class="section-band">
+        <div class="section-head">
+          <h2>2. Auditing 8,398 changed bytes <a class="heading-anchor" href="#audit" aria-label="Link to section 2"><span aria-hidden="true">#</span></a></h2>
+        </div>
+
+        <p>Diffing my car's <code>256 KiB</code> dump against stock showed it was not stock aside from DPF/EGR delete at all; someone had flashed an undisclosed remap. Using <code>4,784</code> disassembled PowerPC cross-references, <code>sid206 audit</code> classified all <strong>8,398 changed bytes</strong> with zero left unexplained:</p>
+
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/audit-breakdown.png"
+              data-caption="100% byte audit breakdown across 8,398 changed bytes (0 unaccounted)"
+              aria-label="Enlarge chart: 100% byte audit breakdown across 8,398 changed bytes"
+            >
+              <img
+                src="./assets/audit-breakdown.png"
+                alt="Breakdown chart accounting for all 8,398 modified bytes in the inherited tune, highlighting 86 disabled monitor paths and 57 silent fault kills"
+                width="2520"
+                height="1044"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>All 8,398 changed bytes mapped to tables or firmware patches.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
+
+        <p><strong>57 silently disabled fault monitors:</strong> Fault handler <code>0x50A9AC</code> runs in two stages. Before it ever reads the 279-entry DTC table (<code>0x04ABC4</code>), it checks a debounce matrix (<code>0x048E84–0x049086</code>) for a step increment <code>r5</code>. Setting <code>r5 = 0</code> clears the fault before the DTC table is ever reached, so standard DTC editors show everything as 100% stock while the check is dead. Of <code>86</code> disabled paths, only <code>29</code> appeared in the DTC table; <strong>57 were muted in the debounce layer</strong>, including low rail pressure (<code>P0087</code>, which is why pressure loss only surfaced as a hidden <code>P0089</code> with no dashboard light), all four piezo injectors, pedals, cooling fan, A/C pressure (caught by a sloppy <code>P14xx</code> bulk wipe), <code>12</code> ABS/gearbox/crash CAN codes, and CPU self-test <code>P0606</code>.</p>
+
+        <p><strong>A ~10% gearbox torque lie and stripped safeties:</strong> Instead of raising real torque limiters cleanly, whoever built the tune inflated 20 Torque-to-IQ maps (the tables converting torque to injected fuel quantity, <code>2,827</code> B total) by <code>+8–10%</code> above <code>200 Nm</code>. The engine got extra fuel while under-reporting real torque by ~10% over CAN to the Aisin automatic and throwing off warm idle. It also zeroed coolant overheat protection (<code>0x0790E2</code>), flattened oil/coolant and altitude limits to <code>450 Nm</code>, flattened limp-home to <code>300 Nm</code>, pushed intake-temp/baro boost limits <code>+15.1%</code> even at <code>100 °C</code>, and corrupted an <code>NTC</code> temperature sensor curve from <code>115 °C</code> to <code>205 °C</code>.</p>
+
+        <p>The car arrived with its DPF and EGR already physically removed by a previous owner, and this repo intentionally ships no emissions-delete tools or calibration builders. Before tuning for power, I flashed pure stock tables back, kept only the settings matching the hardware physically on the car (easy to revert if refitted), re-enabled all 57 safety monitors, and immediately noticed warm idle settle to a clean <code>5.2 RPM</code> std dev. (<a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">Full breakdown</a>.)</p>
+      </section>
+
+      <section id="road-logging" class="section-band">
+        <div class="section-head">
+          <h2>3. Two bugs caught on the road <a class="heading-anchor" href="#road-logging" aria-label="Link to section 3"><span aria-hidden="true">#</span></a></h2>
+        </div>
+
+        <p>Standard OBD PID polling (~5–10 Hz) is too slow to catch quick fuel-rail pressure drops or torque-converter slip during shifts. Polling those whitelisted <code>$23</code> SRAM windows alongside synchronous <code>TF-80SC</code> gearbox telemetry exposed two problems static disassembly missed.</p>
+
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/rail-ceiling-v2-vs-v21.png"
+              data-caption="Fuel rail pressure tracking: 118 drops &gt;80 bar in v2 vs 1 drop in v2.1"
+              aria-label="Enlarge chart: Fuel rail pressure dips comparing v2 and v2.1"
+            >
+              <img
+                src="./assets/rail-ceiling-v2-vs-v21.png"
+                alt="Telemetry plot comparing v2 with 118 rail pressure dips above 80 bar down to -195 bar against v2.1 holding 1,600 bar with only 1 dip"
+                width="2484"
+                height="1224"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>SRAM telemetry caught 118 rail dips &gt;80 bar before dialing fuel to pump limits.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
+
+        <p><strong>Hitting the stock fuel pump ceiling:</strong> In my first high-power test (<code>v2</code> on the chart), demanding <code>75–79 mg/stroke</code> at <code>1,600 bar</code> outran what the 300,000 km high-pressure pump could flow in the midrange. Rail pressure dropped more than <code>80 bar</code> below target <code>118</code> times, dipping as low as <code>-195 bar</code> near <code>2,900 RPM</code>. Pulling peak fuel back to <code>70.5–72 mg/stroke</code> (<code>v2.1</code>) cut <code>&gt;80 bar</code> drops from <code>118</code> to <code>1</code> (zero over <code>100 bar</code>) and jumped measured power at <code>2,875 RPM</code> from <code>103.5</code> to <code>125.6 PS</code> (<code>131.5 PS</code> at <code>3,375 RPM</code>). Asking for less fuel literally made more power.</p>
+
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/auto-pedal-0x07873e.png"
+              data-caption="Automatic gearbox pedal map 0x07873E and measured highway gains"
+              aria-label="Enlarge chart: Automatic gearbox pedal map 0x07873E and highway response"
+            >
+              <img
+                src="./assets/auto-pedal-0x07873e.png"
+                alt="Automatic gearbox pedal map 0x07873E showing removed top-speed taper and measured half-throttle highway fueling increase"
+                width="2484"
+                height="1007"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>Pedal-vs-speed table <code>0x07873E</code> overrides standard pedal maps in automatic Drive.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
+
+        <p><strong>The hidden automatic Drive pedal map (<code>0x07873E</code>):</strong> On one highway test with an intermediate tune, editing all six standard Driver's Wish pedal maps (<code>0x051AE0–0x0524E0</code>) made zero difference at half throttle and the car felt flat. Back in the disassembly, caller <code>0x5CF024</code> explained why: when an automatic is in Drive, the ECU ignores all six maps and reads a separate <code>16×16</code> pedal-vs-speed table at <code>0x07873E</code> instead (which also tapers power <code>25–32%</code> above <code>180 km/h</code>). Reshaping that table with accurate 1:1 gearbox torque numbers brought back crisp highway response.</p>
+      </section>
 
       <section id="results" class="section-band">
         <div class="section-head">
-          <h2>1. Results <a class="heading-anchor" href="#results" aria-label="Link to section 1"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
+          <h2>4. Results and how it drives <a class="heading-anchor" href="#results" aria-label="Link to section 4"><span aria-hidden="true">#</span></a></h2>
         </div>
 
-        <p>All runs below were logged in Ankara (~850 m, ~923 mbar), where thinner air trims peak power slightly. At sea level, factory barometric maps scale this same calibration automatically to <code>~190 PS</code> / <code>395–400 Nm</code>.</p>
+        <p>All acceleration and road-dyno runs below were logged in Ankara (~850 m elevation, ~923 mbar), where thinner air trims peak output slightly. Driving down to Istanbul at sea level confirmed that the factory barometric maps scale this same calibration automatically to <code>~190 PS (~187 HP)</code> and <code>395–400 Nm</code>.</p>
 
         <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper wide">
           <table>
@@ -121,7 +225,7 @@
                 <th scope="row">Peak power (Ankara ~850 m / sea level)</th>
                 <td>Unlogged (flat 390 Nm limit, skewed IQ)</td>
                 <td>~130 PS factory baseline</td>
-                <td><span class="badge-good">180–185 PS (~190 PS / ~395–400 Nm)</span></td>
+                <td><span class="badge-good">180–185 PS (~190 PS / ~187 HP, 395–400 Nm)</span></td>
               </tr>
               <tr>
                 <th scope="row">80–120 km/h (Ankara)</th>
@@ -144,8 +248,8 @@
               <tr>
                 <th scope="row">Gearbox torque reporting</th>
                 <td><span class="badge-warn">~10% under-reported</span></td>
-                <td>Honest 1:1</td>
-                <td><span class="badge-good">Honest 1:1 (rescaled cleanly)</span></td>
+                <td>Accurate 1:1</td>
+                <td><span class="badge-good">Accurate 1:1 (rescaled cleanly)</span></td>
               </tr>
               <tr>
                 <th scope="row">High-pressure fuel rail</th>
@@ -181,144 +285,22 @@
           </figcaption>
         </figure>
 
-        <p>Fixing broken mechanics mattered more than adding boost. Restoring stock injector timing and Torque-to-IQ math made warm idle ~3× smoother (only noticed once stock returned), and dialing fuel under the pump's ceiling actually gained power.</p>
-      </section>
-
-      <section id="re-and-sbl" class="section-band">
-        <div class="section-head">
-          <h2>2. Reversing the firmware &amp; bootloader <a class="heading-anchor" href="#re-and-sbl" aria-label="Link to section 2"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
-        </div>
-
-        <p>Opening a 15-year-old sealed ECU risks cracking the board, so I bought a matching <code>2 MiB</code> stock <code>.FLS</code> (<code>8G91-12K532-AC</code>) to study its <strong>32-bit big-endian <code>MPC561/MPC562</code> PowerPC</strong> code offline (never flash a donor <code>.EPR</code> EEPROM — it holds PATS keys and VIN). Disassembly mapped all four regions, verified <code>CRC-32/MPEG-2</code> CVNs bit-for-bit, and uncovered a live checksum (<code>Cks2</code>, <code>0x562E0C</code>) hashing <code>0x040240–0x040544</code> while driving.</p>
-
-        <p>UDS <code>$27 SecurityAccess</code> uses a 24-bit Galois LFSR over <code>[seed(3), secret(5)]</code>. Public scripts fail because the ECU loads the 5-byte secret byte-reversed — and since <code>GF(2)</code> shifting is linear, one CAN challenge-response pair recovers it in milliseconds. Level <code>0x03</code> opened <code>$23 ReadMemoryByAddress</code>, but its whitelist (<code>0x1A565C</code>) blocks flash and only exposes two SRAM windows: useless for backups, great for road logging.</p>
-
-        <p>Instead of risking custom PowerPC shellcode to read flash, I unpacked Ford's official Secondary Bootloader named inside Boot (<code>6G91-14C273-DH.vbf</code> at <code>0x004290</code>) and hit gold: it natively implements <strong>UDS <code>$35 RequestUpload</code></strong> alongside <code>$34</code>. Static call-graph analysis proved <code>flash_erase</code> (<code>0x007FCA84</code>) and <code>flash_write</code> (<code>0x007FC920</code>) are unreachable during <code>$35</code> reads, letting a Mac Python script over Tactrix OpenPort 2.0 dump all <code>256 KiB</code> in <strong>~35 s</strong> with CRC-16 checks. (Full notes in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">firmware-re.md</a> &amp; <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">sbl-re.md</a>.)</p>
-
-        <pre role="region" aria-label="Boot to SBL handoff and OBD backup/write sequence" tabindex="0"><code>1. App -&gt; Boot  : 10 02 (engine-off check @ 0x005A52D4 -&gt; jumps to Bootloader)
-2. Unlock Boot  : 27 01 -&gt; 27 02 &lt;key&gt; (Boot 5-byte secret @ 0x022231, reversed bytes)
-3. Load SBL     : Upload 3 official VBF SRAM segments via 34 -&gt; 36 -&gt; 37 (CRC-16 verified)
-4. Start SBL    : 31 01 03 01 00 7F E2 54 -&gt; confirm heartbeat 22 D1 00 -&gt; 62 D1 00 02
-5. Read ($35)   : 35 00 44 00 84 00 00 00 04 00 00 -&gt; 1,041 × 252 B chunks (~35 s) -&gt; 37 CRC-16
-6. Write ($34)  : Offline Cks2/CVN check -&gt; 31 01 FF 00 erase -&gt; 34/36/37 + FF 01 CRC-16 -&gt; 11 01 reset</code></pre>
-      </section>
-
-      <section id="audit" class="section-band">
-        <div class="section-head">
-          <h2>3. Auditing 8,398 changed bytes <a class="heading-anchor" href="#audit" aria-label="Link to section 3"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
-        </div>
-
-        <p>Diffing our car's <code>256 KiB</code> dump against stock exposed an undisclosed remap. Using <code>4,784</code> PowerPC xrefs, <code>sid206 audit</code> classified all <strong>8,398 changed bytes</strong> with zero unexplained:</p>
-
-        <figure class="wide">
-          <div class="chart-frame">
-            <button
-              type="button"
-              class="chart-trigger"
-              data-full-src="./assets/audit-breakdown.png"
-              data-caption="100% byte audit breakdown across 8,398 changed bytes (0 unaccounted)"
-              aria-label="Enlarge chart: 100% byte audit breakdown across 8,398 changed bytes"
-            >
-              <img
-                src="./assets/audit-breakdown.png"
-                alt="Breakdown chart accounting for all 8,398 modified bytes in the inherited tune, highlighting 86 disabled monitor paths and 57 silent fault kills"
-                width="2520"
-                height="1044"
-                loading="lazy"
-              >
-            </button>
-          </div>
-          <figcaption>
-            <span>All 8,398 changed bytes mapped to tables or firmware patches.</span>
-            <span class="zoom-hint">[click chart to enlarge]</span>
-          </figcaption>
-        </figure>
-
-        <p><strong>57 silently dead monitors:</strong> Fault handler <code>0x50A9AC</code> runs a two-stage check — a debounce matrix (<code>0x048E84–0x049086</code>) passes increment <code>r5</code> <em>before</em> the 279-entry DTC table (<code>0x04ABC4</code>). Zeroing <code>r5</code> kills the fault silently while leaving the DTC table 100% stock. Of <code>86</code> disabled monitors, only <code>29</code> appeared in the DTC table; <strong>57 were silently dead</strong> — including low rail pressure (<code>P0087</code>, why pressure loss only showed as non-MIL <code>P0089</code>), all four piezo injectors, pedals, cooling fan, A/C pressure (<code>P14xx</code> collateral), <code>12</code> CAN codes, and CPU self-test <code>P0606</code>.</p>
-
-        <p><strong>~10% torque lie &amp; stripped limits:</strong> The tune inflated 20 Torque-to-IQ maps (<code>2,827</code> B) by <code>+8–10%</code> above <code>200 Nm</code>, under-reporting torque <code>~10%</code> over CAN to the Aisin gearbox and upsetting warm idle. It also zeroed coolant overheat derate (<code>0x0790E2</code>), flattened thermal/altitude limits to <code>450 Nm</code> and limp-home to <code>300 Nm</code>, boosted IAT/Baro limits <code>+15.1%</code> at <code>100 °C</code>, and broke an <code>NTC Ch3</code> curve (<code>115 → 205 °C</code>).</p>
-
-        <p>DPF and EGR were physically removed by a previous owner, and this repo ships no emissions-delete tools or calibration builders. Before tuning, I restored pure stock tables, kept only settings matching the vehicle's physical hardware (easily reversible if refitted), re-enabled all 57 safety monitors, and watched warm idle drop to <code>5.2 RPM</code> std dev. (<a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">Full breakdown</a>.)</p>
-      </section>
-
-      <section id="road-logging" class="section-band">
-        <div class="section-head">
-          <h2>4. Two bugs caught on the road <a class="heading-anchor" href="#road-logging" aria-label="Link to section 4"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
-        </div>
-
-        <p>Standard OBD PIDs (~5–10 Hz) miss fast dips and lockup slip. Logging <code>$23</code> SRAM windows with synchronous <code>TF-80SC</code> gearbox telemetry exposed two bugs static analysis missed.</p>
-
-        <figure class="wide">
-          <div class="chart-frame">
-            <button
-              type="button"
-              class="chart-trigger"
-              data-full-src="./assets/rail-ceiling-v2-vs-v21.png"
-              data-caption="Fuel rail pressure tracking: 118 drops &gt;80 bar in v2 vs 1 drop in v2.1"
-              aria-label="Enlarge chart: Fuel rail pressure dips comparing v2 and v2.1"
-            >
-              <img
-                src="./assets/rail-ceiling-v2-vs-v21.png"
-                alt="Telemetry plot comparing v2 with 118 rail pressure dips above 80 bar down to -195 bar against v2.1 holding 1,600 bar with only 1 dip"
-                width="2484"
-                height="1224"
-                loading="lazy"
-              >
-            </button>
-          </div>
-          <figcaption>
-            <span>SRAM telemetry caught 118 rail dips &gt;80 bar before dialing fuel to pump limits.</span>
-            <span class="zoom-hint">[click chart to enlarge]</span>
-          </figcaption>
-        </figure>
-
-        <p><strong>Stock fuel pump ceiling (v2 vs v2.1):</strong> Demanding <code>75–79 mg/stroke</code> at <code>1,600 bar</code> outran the 300,000 km pump's midrange flow: rail pressure dipped <code>&gt;80 bar</code> below target <code>118</code> times (to <code>-195 bar</code> near <code>2,900 RPM</code>). Pulling peak fuel back to <code>70.5–72 mg/stroke</code> cut <code>&gt;80 bar</code> dips from <code>118</code> to <code>1</code> (zero over <code>100 bar</code>) and jumped <code>2,875 RPM</code> power from <code>103.5</code> to <code>125.6 PS</code> (<code>131.5 PS</code> at <code>3,375 RPM</code>).</p>
-
-        <figure class="wide">
-          <div class="chart-frame">
-            <button
-              type="button"
-              class="chart-trigger"
-              data-full-src="./assets/auto-pedal-0x07873e.png"
-              data-caption="Automatic gearbox pedal map 0x07873E and measured highway gains"
-              aria-label="Enlarge chart: Automatic gearbox pedal map 0x07873E and highway response"
-            >
-              <img
-                src="./assets/auto-pedal-0x07873e.png"
-                alt="Automatic gearbox pedal map 0x07873E showing removed top-speed taper and measured half-throttle highway fueling increase"
-                width="2484"
-                height="1007"
-                loading="lazy"
-              >
-            </button>
-          </div>
-          <figcaption>
-            <span>Pedal-vs-speed table <code>0x07873E</code> overrides standard pedal maps in automatic Drive.</span>
-            <span class="zoom-hint">[click chart to enlarge]</span>
-          </figcaption>
-        </figure>
-
-        <p><strong>Automatic Drive pedal override (<code>0x07873E</code>):</strong> On one test drive with an intermediate tune, editing all six Driver's Wish pedal maps (<code>0x051AE0–0x0524E0</code>) did nothing at part throttle and felt flat. Disassembly showed caller <code>0x5CF024</code> ignores them in automatic Drive in favor of a <code>16×16</code> Pedal-vs-Speed table at <code>0x07873E</code> (which also tapers <code>25–32%</code> above <code>180 km/h</code>). Reshaping it with honest 1:1 torque math cut Ankara <code>80–120 km/h</code> from <code>10.3 s</code> stock to <code>7.2–7.8 s</code> (<code>60–100</code> in <code>5.8 s</code>), and driving to Istanbul confirmed <code>~190 PS</code> at sea level.</p>
+        <p>The biggest day-to-day improvement isn't even the peak number. Now that the automatic gearbox gets accurate torque values over CAN instead of a ~10% lie, gear shifts are noticeably cleaner and smoother. The car feels crisp and responsive, warm idle is roughly 3× smoother (something I only noticed once stock data went back in), and there is far less black smoke under load, usually none. Even the dashboard fuel indicator feels a bit truer now that the ECU isn't fudging injected fuel math, though time will tell.</p>
       </section>
 
       <section id="ai" class="section-band">
         <div class="section-head">
-          <h2>5. AI on a binary you can't brick <a class="heading-anchor" href="#ai" aria-label="Link to section 5"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
+          <h2>5. Using AI on an ECU you can't afford to brick <a class="heading-anchor" href="#ai" aria-label="Link to section 5"><span aria-hidden="true">#</span></a></h2>
         </div>
 
-        <p>This worked because AI handled high-volume reverse-engineering drudgery while deterministic code and hardware checks acted as hard gates. Lifting <code>2 MiB</code> of PowerPC assembly, classifying <code>8,398</code> diff bytes across <code>4,784</code> xrefs, and finding <code>0x5CF024 → 0x07873E</code> would have taken weeks alone.</p>
+        <p>AI helped most with the scale problem: lifting raw <code>2 MiB</code> PowerPC disassembly into readable C, tracking <code>8,398</code> changed bytes across <code>4,784</code> references, and spotting that <code>0x5CF024</code> jumped to <code>0x07873E</code> instead of the normal pedal maps. Doing that alone would have taken weeks.</p>
 
-        <p>Conversely, never let an LLM guess an offset, endianness rule, or checksum before flashing your own car. Every claimed table traced back to verified MPC561 assembly, our flasher enforces offline <code>CRC-32/MPEG-2</code> and <code>Cks2</code> checks, and live SRAM logs caught physical pump limits static code never shows.</p>
+        <p>Where I drew a hard line was trusting an LLM with anything that touches flash. Every table address and branch had to check out directly in MPC561 assembly, my flasher enforces offline <code>CRC-32/MPEG-2</code> and <code>Cks2</code> checks before opening CAN, and live SRAM logs caught physical pump limits (like those <code>118</code> drops) that reading firmware alone can never tell you.</p>
       </section>
 
       <section id="repo" class="section-band">
         <div class="section-head">
           <h2>6. Code &amp; deep-dive docs <a class="heading-anchor" href="#repo" aria-label="Link to section 6"><span aria-hidden="true">#</span></a></h2>
-          <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
         <p>All scanners, official-SBL backup/write tools, <code>$23</code> SRAM + <code>TF-80SC</code> loggers, road-dyno scripts, and offline tests live in <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a> (no OEM binaries, drive logs, VINs, serials, or secrets).</p>

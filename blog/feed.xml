@@ -7,18 +7,18 @@
     <language>en</language>
     <atom:link href="https://barisuraz.github.io/sid206-toolkit/feed.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself</title>
+      <title>Overclocking my car: reverse-engineering a Ford ECU from 130 to 190 HP</title>
       <link>https://barisuraz.github.io/sid206-toolkit/</link>
       <guid isPermaLink="true">https://barisuraz.github.io/sid206-toolkit/</guid>
       <pubDate>Fri, 20 Nov 2026 00:00:00 +0300</pubDate>
-      <description>Dumping a 256 KiB SID206 calibration over OBD via Ford's official SBL and diffing it against stock exposed 57 silently disabled fault monitors, a ~10% gearbox torque under-report, and stripped protection limiters before rebuilding a clean ~190 PS calibration.</description>
+      <description>Buying a matching 2 MiB stock SID206 PowerPC flash, reversing Ford's official Secondary Bootloader to dump my car's 256 KiB calibration over OBD on a Mac, uncovering 57 silently disabled fault monitors, and tuning cleanly to ~190 PS (~187 HP).</description>
     </item>
     <item>
-      <title>Arabamın ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye kendim çıkardım (TR)</title>
+      <title>Arabamı overclocklamak: Ford ECU'sunu tersine mühendislikle çözüp 130'dan 190 HP'ye çıkardım (TR)</title>
       <link>https://barisuraz.github.io/sid206-toolkit/tr/</link>
       <guid isPermaLink="true">https://barisuraz.github.io/sid206-toolkit/tr/</guid>
       <pubDate>Fri, 20 Nov 2026 00:00:00 +0300</pubDate>
-      <description>Birebir uyan 2 MiB stok SID206 MPC561/MPC562 PowerPC dosyasını satın alıp Ford'un resmi Secondary Bootloader'ını çözerek aracın 256 KiB calibration bloğunu OBD'den okumak, 57 gizli arıza monitörü iptalini ortaya çıkarmak ve temiz bir ~190 PS yazılım hazırlamak.</description>
+      <description>Stok 2 MiB SID206 PowerPC dosyasını ve Ford'un resmi Secondary Bootloader'ını Mac'te çözerek arabamın 256 KiB kalibrasyonunu OBD'den okudum, 57 gizli arıza iptalini ortaya çıkardım ve aracı temiz bir şekilde ~190 PS bandına çıkardım.</description>
     </item>
   </channel>
 </rss>
