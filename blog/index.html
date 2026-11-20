@@ -5,14 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <title>Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi</title>
-  <meta name="description" content="Pulling a full 2 MB Siemens SID206 PowerPC binary over OBD, uncovering 57 silently muted fault monitors and a torque lie to the automatic gearbox, and tuning cleanly to ~190 PS.">
+  <meta name="description" content="Reversing the Siemens SID206 MPC561 PowerPC firmware and Ford's official Secondary Bootloader to dump flash over OBD, uncover 57 silent fault kills and a gearbox torque lie, and tune cleanly to ~190 PS.">
   <meta name="author" content="Baris Uraz">
   <link rel="canonical" href="https://barisuraz.github.io/sid206-toolkit/">
+  <link rel="alternate" hreflang="en" href="https://barisuraz.github.io/sid206-toolkit/">
+  <link rel="alternate" hreflang="tr" href="https://barisuraz.github.io/sid206-toolkit/tr/">
+  <link rel="alternate" hreflang="x-default" href="https://barisuraz.github.io/sid206-toolkit/">
 
   <meta property="og:type" content="article">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="tr_TR">
   <meta property="og:site_name" content="sid206-toolkit">
   <meta property="og:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
-  <meta property="og:description" content="Dumping the full 2 MB SID206 flash over OBD, auditing 8,398 changed bytes against stock, and building a clean ~190 PS Stage 1 tune backed by high-speed road logs.">
+  <meta property="og:description" content="Reversing SID206 MPC561 firmware and Ford's official Secondary Bootloader (6G91-14C273-DH) to dump 2 MiB flash over OBD, audit 8,398 changed bytes, and build a ~190 PS calibration.">
   <meta property="og:url" content="https://barisuraz.github.io/sid206-toolkit/">
   <meta property="og:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
   <meta property="og:image:width" content="2520">
@@ -21,606 +26,30 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
-  <meta name="twitter:description" content="Pulling a 2 MB ECU dump over OBD, finding 57 hidden fault deletes in PowerPC disassembly, and tuning a 300,000 km Mondeo to ~190 PS.">
+  <meta name="twitter:description" content="Reversing SID206 PowerPC firmware and Ford's official SBL to dump 2 MiB over OBD, audit 8,398 bytes against stock, and tune cleanly to ~190 PS.">
   <meta name="twitter:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f4c81'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%23ffffff'%3ESID%3C/text%3E%3C/svg%3E">
-
-  <style>
-    :root {
-      color-scheme: light dark;
-
-      --bg-light: #ffffff;
-      --bg-dark: #0d1117;
-      --surface-light: #f6f8fa;
-      --surface-dark: #161b22;
-      --text-light: #111827;
-      --text-dark: #e6edf3;
-      --muted-light: #4b5563;
-      --muted-dark: #9da7b3;
-      --border-light: #6b7280;
-      --border-dark: #656e7a;
-      --rule-light: #d0d7de;
-      --rule-dark: #30363d;
-      --accent-light: #0f4c81;
-      --accent-dark: #58a6ff;
-      --code-bg-light: #eff2f6;
-      --code-bg-dark: #1f242c;
-      --good-text-light: #14532d;
-      --good-text-dark: #7ee787;
-      --warn-text-light: #991b1b;
-      --warn-text-dark: #ff9492;
-      --scrollbar-thumb-light: #5c6570;
-      --scrollbar-thumb-dark: #8b949e;
-      --scrollbar-track-light: #eaeef2;
-      --scrollbar-track-dark: #1c2128;
-
-      --bg: var(--bg-light);
-      --surface: var(--surface-light);
-      --text: var(--text-light);
-      --muted: var(--muted-light);
-      --border: var(--border-light);
-      --rule: var(--rule-light);
-      --accent: var(--accent-light);
-      --code-bg: var(--code-bg-light);
-      --good-text: var(--good-text-light);
-      --warn-text: var(--warn-text-light);
-      --scrollbar-thumb: var(--scrollbar-thumb-light);
-      --scrollbar-track: var(--scrollbar-track-light);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: var(--bg-dark);
-        --surface: var(--surface-dark);
-        --text: var(--text-dark);
-        --muted: var(--muted-dark);
-        --border: var(--border-dark);
-        --rule: var(--rule-dark);
-        --accent: var(--accent-dark);
-        --code-bg: var(--code-bg-dark);
-        --good-text: var(--good-text-dark);
-        --warn-text: var(--warn-text-dark);
-        --scrollbar-thumb: var(--scrollbar-thumb-dark);
-        --scrollbar-track: var(--scrollbar-track-dark);
-      }
-    }
-
-    @supports (color: light-dark(white, black)) {
-      :root {
-        --bg: light-dark(var(--bg-light), var(--bg-dark));
-        --surface: light-dark(var(--surface-light), var(--surface-dark));
-        --text: light-dark(var(--text-light), var(--text-dark));
-        --muted: light-dark(var(--muted-light), var(--muted-dark));
-        --border: light-dark(var(--border-light), var(--border-dark));
-        --rule: light-dark(var(--rule-light), var(--rule-dark));
-        --accent: light-dark(var(--accent-light), var(--accent-dark));
-        --code-bg: light-dark(var(--code-bg-light), var(--code-bg-dark));
-        --good-text: light-dark(var(--good-text-light), var(--good-text-dark));
-        --warn-text: light-dark(var(--warn-text-light), var(--warn-text-dark));
-        --scrollbar-thumb: light-dark(var(--scrollbar-thumb-light), var(--scrollbar-thumb-dark));
-        --scrollbar-track: light-dark(var(--scrollbar-track-light), var(--scrollbar-track-dark));
-      }
-    }
-
-    :root {
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-      accent-color: var(--accent);
-    }
-
-    @supports not (scrollbar-color: auto) {
-      :root::-webkit-scrollbar,
-      .table-wrapper::-webkit-scrollbar {
-        width: 12px;
-        height: 12px;
-      }
-
-      :root::-webkit-scrollbar-thumb,
-      .table-wrapper::-webkit-scrollbar-thumb {
-        background: var(--scrollbar-thumb);
-      }
-
-      :root::-webkit-scrollbar-track,
-      .table-wrapper::-webkit-scrollbar-track {
-        background: var(--scrollbar-track);
-      }
-    }
-
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      font-size: clamp(1rem, 0.96rem + 0.22vw, 1.08rem);
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
-
-    .grid-band {
-      display: grid;
-      grid-template-columns:
-        minmax(clamp(1rem, 4vw, 2.5rem), 1fr)
-        minmax(0, 45rem)
-        minmax(clamp(1rem, 4vw, 2.5rem), 1fr);
-    }
-
-    .grid-band > * {
-      grid-column: 2;
-      min-inline-size: 0;
-    }
-
-    .grid-band > .wide {
-      grid-column: 1 / -1;
-      inline-size: min(62rem, calc(100% - 2 * clamp(1rem, 4vw, 2.5rem)));
-      justify-self: center;
-    }
-
-    a {
-      color: var(--accent);
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 0.18em;
-    }
-
-    a:hover {
-      text-decoration-thickness: 2.5px;
-    }
-
-    :focus-visible {
-      outline: 2.5px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .site-header {
-      border-block-end: 1px solid var(--rule);
-      background-color: var(--surface);
-      padding-block: 0.9rem;
-    }
-
-    .header-inner {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.65rem 1.25rem;
-    }
-
-    .brand {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.94rem;
-      font-weight: 600;
-      color: var(--text);
-      text-decoration: none;
-    }
-
-    .brand:hover {
-      color: var(--accent);
-    }
-
-    .header-nav ul {
-      display: flex;
-      flex-wrap: wrap;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      gap: 0.45rem 1.1rem;
-      font-size: 0.92rem;
-    }
-
-    .header-nav a {
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .header-nav a:hover {
-      text-decoration: underline;
-    }
-
-    main {
-      padding-block: clamp(1.8rem, 4vw, 3rem) clamp(3rem, 6vw, 4.5rem);
-    }
-
-    h1 {
-      margin-block: 0 0.65rem;
-      font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.55rem);
-      line-height: 1.18;
-      letter-spacing: -0.02em;
-    }
-
-    .meta-line {
-      margin-block: 0 1.6rem;
-      color: var(--muted);
-      font-size: 0.92rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem 0.85rem;
-    }
-
-    h2 {
-      margin-block: 2.6rem 0.9rem;
-      padding-block-start: 1.4rem;
-      border-block-start: 1px solid var(--rule);
-      font-size: clamp(1.32rem, 1.15rem + 0.7vw, 1.65rem);
-      line-height: 1.28;
-      letter-spacing: -0.015em;
-    }
-
-    h3 {
-      margin-block: 2rem 0.65rem;
-      font-size: clamp(1.08rem, 1rem + 0.35vw, 1.25rem);
-      line-height: 1.35;
-    }
-
-    p {
-      margin-block: 0 1.15rem;
-    }
-
-    ul,
-    ol {
-      margin-block: 0 1.25rem;
-      padding-inline-start: 1.45rem;
-    }
-
-    li + li {
-      margin-block-start: 0.55rem;
-    }
-
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.89em;
-      background-color: var(--code-bg);
-      padding: 0.12em 0.36em;
-      border-radius: 4px;
-      border: 1px solid var(--rule);
-    }
-
-    .badge-good {
-      color: var(--good-text);
-      font-weight: 700;
-    }
-
-    .badge-warn {
-      color: var(--warn-text);
-      font-weight: 700;
-    }
-
-    /* Responsive table (semantic headers + container-query stacked cards on narrow viewports) */
-    .table-wrapper {
-      overflow: auto;
-      max-inline-size: 100%;
-      max-block-size: min(560px, 85vh);
-      container-type: inline-size;
-      margin-block: 1.4rem 1.8rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background-color: var(--bg);
-      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-    }
-
-    table {
-      inline-size: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 0.94rem;
-      line-height: 1.45;
-      --label-2: "Old Remap";
-      --label-3: "Restored Stock (DPF/EGR off)";
-      --label-4: "Final Tune";
-    }
-
-    caption {
-      padding: 0.75rem 0.95rem;
-      text-align: start;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--muted);
-      background-color: var(--surface);
-      border-block-end: 1px solid var(--rule);
-    }
-
-    thead {
-      position: sticky;
-      inset-block-start: 0;
-      z-index: 2;
-      background-color: var(--surface);
-    }
-
-    th,
-    td {
-      padding: 0.72rem 0.95rem;
-      text-align: start;
-      vertical-align: top;
-      border-block-end: 1px solid var(--rule);
-    }
-
-    thead th {
-      font-weight: 700;
-      border-block-end: 2px solid var(--border);
-      background-color: var(--surface);
-    }
-
-    tbody th {
-      position: sticky;
-      inset-inline-start: 0;
-      z-index: 1;
-      background-color: var(--bg);
-      font-weight: 600;
-      border-inline-end: 1px solid var(--rule);
-    }
-
-    tbody tr:last-child th,
-    tbody tr:last-child td {
-      border-block-end: none;
-    }
-
-    @container (width < 600px) {
-      .table-wrapper {
-        max-block-size: none;
-        border: none;
-        background-color: transparent;
-      }
-
-      table,
-      thead,
-      tbody,
-      tr,
-      th,
-      td {
-        display: block;
-      }
-
-      caption {
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        margin-block-end: 0.85rem;
-      }
-
-      thead {
-        display: none;
-      }
-
-      tr {
-        margin-block-end: 0.9rem;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
-        background-color: var(--bg);
-      }
-
-      tbody th {
-        position: sticky;
-        inset-block-start: 0;
-        z-index: 2;
-        background-color: var(--surface);
-        border-inline-end: none;
-        border-block-end: 1px solid var(--border);
-      }
-
-      td {
-        border-block-end: 1px solid var(--rule);
-      }
-
-      td::before {
-        display: block;
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--muted);
-        margin-block-end: 0.15rem;
-      }
-
-      td:nth-child(2)::before {
-        content: var(--label-2);
-      }
-
-      td:nth-child(3)::before {
-        content: var(--label-3);
-      }
-
-      td:nth-child(4)::before {
-        content: var(--label-4);
-      }
-
-      tbody tr:last-child td:last-child {
-        border-block-end: none;
-      }
-    }
-
-    /* Chart figures with crisp white chart backing and click-to-zoom trigger */
-    figure.wide {
-      margin-block: 1.5rem 1.85rem;
-      margin-inline: 0;
-    }
-
-    .chart-frame {
-      background-color: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: clamp(0.35rem, 1.1vw, 0.75rem);
-    }
-
-    .chart-trigger {
-      display: block;
-      inline-size: 100%;
-      padding: 0;
-      margin: 0;
-      border: 0;
-      background: transparent;
-      cursor: zoom-in;
-      border-radius: 6px;
-    }
-
-    .chart-trigger img {
-      display: block;
-      inline-size: 100%;
-      block-size: auto;
-      border-radius: 6px;
-    }
-
-    figcaption {
-      margin-block-start: 0.55rem;
-      color: var(--muted);
-      font-size: 0.89rem;
-      line-height: 1.45;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 0.25rem 0.75rem;
-    }
-
-    .zoom-hint {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.82rem;
-    }
-
-    /* Native modal dialog lightbox */
-    dialog#lightbox {
-      max-inline-size: min(96vw, 80rem);
-      max-block-size: 94vh;
-      margin: auto;
-      padding: 0;
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      background-color: var(--surface);
-      color: var(--text);
-    }
-
-    dialog#lightbox::backdrop {
-      background-color: rgba(0, 0, 0, 0.74);
-      backdrop-filter: blur(3px);
-    }
-
-    .lightbox-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.7rem 1rem;
-      border-block-end: 1px solid var(--rule);
-    }
-
-    .lightbox-title {
-      margin: 0;
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
-
-    .lightbox-close {
-      font: inherit;
-      font-size: 0.9rem;
-      font-weight: 600;
-      padding: 0.35rem 0.8rem;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background-color: var(--bg);
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .lightbox-close:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .lightbox-body {
-      padding: 0.75rem;
-      background-color: #ffffff;
-      overflow: auto;
-      max-block-size: calc(94vh - 3.6rem);
-    }
-
-    .lightbox-body img {
-      display: block;
-      inline-size: 100%;
-      block-size: auto;
-    }
-
-    .site-footer {
-      border-block-start: 1px solid var(--rule);
-      background-color: var(--surface);
-      padding-block: 1.6rem;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .footer-inner {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 0.5rem 1.25rem;
-    }
-
-    @media (prefers-contrast: more) {
-      :root {
-        --muted-light: #1f2937;
-        --muted-dark: #d1d5db;
-        --border-light: #111827;
-        --border-dark: #e5e7eb;
-        --rule-light: #4b5563;
-        --rule-dark: #9ca3af;
-      }
-    }
-
-    @media (forced-colors: active) {
-      body,
-      .site-header,
-      .site-footer,
-      .table-wrapper,
-      thead th,
-      tbody th,
-      caption,
-      dialog#lightbox {
-        background-color: Canvas;
-        color: CanvasText;
-        border-color: CanvasText;
-      }
-
-      .chart-frame,
-      .lightbox-body {
-        forced-color-adjust: none;
-        background-color: #ffffff;
-        border: 2px solid CanvasText;
-      }
-
-      a {
-        color: LinkText;
-      }
-
-      .meta-line,
-      figcaption,
-      .lightbox-title,
-      .site-footer {
-        color: GrayText;
-      }
-
-      .lightbox-close {
-        background-color: ButtonFace;
-        color: ButtonText;
-        border: 1px solid ButtonText;
-      }
-
-      :focus-visible {
-        outline-color: Highlight;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="./assets/style.css">
+  <script src="./assets/blog.js" defer></script>
 </head>
 <body>
   <header class="site-header grid-band">
     <div class="header-inner">
       <a class="brand" href="https://github.com/barisuraz/sid206-toolkit">barisuraz / sid206-toolkit</a>
-      <nav class="header-nav" aria-label="Repository links">
-        <ul>
-          <li><a href="https://github.com/barisuraz/sid206-toolkit">GitHub Repo</a></li>
-          <li><a href="https://github.com/barisuraz/sid206-toolkit/tree/main/docs">Technical Docs</a></li>
-          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/blog/post.md">Markdown Source</a></li>
-        </ul>
-      </nav>
+      <div class="header-controls">
+        <nav class="header-nav" aria-label="Repository links">
+          <ul>
+            <li><a href="https://github.com/barisuraz/sid206-toolkit">GitHub</a></li>
+            <li><a href="https://github.com/barisuraz/sid206-toolkit/tree/main/docs">Docs</a></li>
+            <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/blog/post.md">Markdown</a></li>
+          </ul>
+        </nav>
+        <nav class="lang-switch" aria-label="Language">
+          <a href="./" lang="en" hreflang="en" aria-current="page">EN</a>
+          <a href="./tr/" lang="tr" hreflang="tr">TR</a>
+        </nav>
+      </div>
     </div>
   </header>
 
@@ -630,236 +59,437 @@
       <p class="meta-line">
         <span>By Baris Uraz</span>
         <span aria-hidden="true">·</span>
-        <span>Siemens SID206 · PowerPC reverse engineering &amp; road telemetry</span>
+        <span>Siemens SID206 · MPC561 PowerPC &amp; SBL reverse engineering</span>
       </p>
 
-      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed automatic) with around 300,000 km on the clock. The particulate filter (DPF) and EGR valve had already been physically removed, four fresh injectors were installed, and an unknown prior owner had flashed a remap onto it. On paper it should have pulled fine. In reality the idle was rough, highway passing felt lazy, and under hard load the fuel system threw a pressure fault (<code>P0089</code>), yet generic OBD scanners showed no check-engine light and zero stored codes.</p>
+      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed Aisin <code>TF-80SC</code> automatic) with around 300,000 km on the clock. The DPF and EGR valve had already been physically removed, and an unknown prior remap was on the ECU. I bought the car thinking the injectors were healthy; after having them tested on a bench, all four piezo injectors turned out worn out and had to be replaced.</p>
 
-      <p>So I pulled the full binary out of the engine computer (<code>SID206</code>) over the OBD port, bought a clean stock file to diff against, traced the prior tune's hidden patches in firmware disassembly, and built a clean <code>~190 PS</code> Stage 1 calibration verified with high-speed road logs.</p>
+      <p>Even on four new injectors, warm idle stayed rough, and a deeper UDS <code>$19 02</code> diagnostic scan caught a <code>P0089</code> fuel-pressure fault while generic OBD scanners showed no check-engine light and zero stored codes. To find out what the mystery remap had actually changed, I reversed both the <code>SID206</code> PowerPC firmware and Ford's official Secondary Bootloader to pull a clean <code>2 MiB</code> dump over OBD on a Mac, audited all <code>8,398</code> changed bytes against a clean stock binary, wiped the broken patches, and built a clean <code>~190 PS</code> tune verified with direct SRAM road logs.</p>
 
-      <h2>Results</h2>
+      <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
+        <p id="toc-heading" class="toc-heading">Contents</p>
+        <ol>
+          <li><a href="#results">1. Results</a></li>
+          <li>
+            <a href="#firmware-re">2. Reversing the SID206 firmware</a>
+            <ol>
+              <li><a href="#memory-map">2.1 Debunking the TriCore myth &amp; 2 MiB MPC561 memory map</a></li>
+              <li><a href="#checksums">2.2 Checksums: CRC-32/MPEG-2 CVNs and the live Cks2 monitor</a></li>
+              <li><a href="#seedkey">2.3 Cracking $27 SecurityAccess (24-bit LFSR, reversed bytes &amp; GF(2))</a></li>
+              <li><a href="#sram-read">2.4 Why $23 ReadMemoryByAddress won't dump flash (and what it exposes)</a></li>
+              <li><a href="#tables-xrefs">2.5 Mode 22 DIDs, $31 routines, and 4,784 calibration xrefs</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#sbl-re">3. Reversing Ford's official Secondary Bootloader (6G91-14C273-DH.vbf)</a>
+            <ol>
+              <li><a href="#sbl-startup">3.1 Startup, IMMR peripheral remapping, and the 10 ms watchdog</a></li>
+              <li><a href="#sbl-dispatch">3.2 The surprise in the UDS dispatch table: native $35 RequestUpload</a></li>
+              <li><a href="#sbl-safety">3.3 Static call-graph proof: why reading cannot erase or write</a></li>
+              <li><a href="#sbl-handoff">3.4 Exact Boot → SBL handoff and 35-second OBD backup sequence</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#audit">4. Auditing the old tune: 8,398 changed bytes (0 unaccounted)</a>
+            <ol>
+              <li><a href="#silent-dtc">4.1 The two-layer r5 = 0 silent DTC lobotomy (57 hidden kills)</a></li>
+              <li><a href="#torque-lie">4.2 Skewed Torque-to-IQ (~10% gearbox torque lie) &amp; stripped limiters</a></li>
+            </ol>
+          </li>
+          <li>
+            <a href="#road-logging">5. Road telemetry: two bugs static analysis missed</a>
+            <ol>
+              <li><a href="#fuel-pump">5.1 Hitting the stock fuel pump ceiling (v2 vs v2.1)</a></li>
+              <li><a href="#auto-pedal">5.2 The automatic Drive pedal override (0x07873E)</a></li>
+            </ol>
+          </li>
+          <li><a href="#ai">6. Using AI on a binary you can't afford to brick</a></li>
+          <li><a href="#repo">7. Code &amp; technical documentation</a></li>
+        </ol>
+      </nav>
 
-      <p>All acceleration and road-dyno runs below were logged at around 850 m elevation in Ankara (~923 mbar ambient air pressure), where thinner air naturally costs a few percent of peak power compared to sea level. At sea level, the same tune automatically scales up to roughly <code>190 PS</code> and <code>395–400 Nm</code> through the factory barometric compensation tables.</p>
-
-      <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper wide">
-        <table>
-          <caption id="results-table-caption">Before and after comparison across Old Remap, Restored Stock, and Final Tune</caption>
-          <thead>
-            <tr>
-              <th scope="col">Metric</th>
-              <th scope="col">Old Remap</th>
-              <th scope="col">Restored Stock (DPF/EGR off)</th>
-              <th scope="col">Final Tune</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">Peak power (Ankara ~850 m / sea level)</th>
-              <td>Sluggish pull, pressure drops</td>
-              <td>~130 PS factory baseline</td>
-              <td><span class="badge-good">180–185 PS (~190 PS / ~395–400 Nm)</span></td>
-            </tr>
-            <tr>
-              <th scope="row">80–120 km/h (Ankara)</th>
-              <td>Not repeatable</td>
-              <td>10.3 s</td>
-              <td><span class="badge-good">7.2–7.8 s</span> (60–100 km/h in 5.8 s)</td>
-            </tr>
-            <tr>
-              <th scope="row">Warm idle stability</th>
-              <td>Rough (~3x worse jitter)</td>
-              <td>Smooth (5.2 RPM std dev)</td>
-              <td><span class="badge-good">Smooth (5.2 RPM std dev)</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Hidden fault codes</th>
-              <td><span class="badge-warn">57 silently muted</span> (injectors, fuel, CPU)</td>
-              <td>0 (DPF/EGR only)</td>
-              <td><span class="badge-good">0 (DPF/EGR only)</span></td>
-            </tr>
-            <tr>
-              <th scope="row">Gearbox torque reporting</th>
-              <td><span class="badge-warn">~10% under-reported</span></td>
-              <td>Honest 1:1</td>
-              <td><span class="badge-good">Honest 1:1 (rescaled cleanly)</span></td>
-            </tr>
-            <tr>
-              <th scope="row">High-pressure fuel rail</th>
-              <td>Drops pressure (<code>P0089</code> / hidden <code>P0087</code>)</td>
-              <td>Holds target cleanly</td>
-              <td><span class="badge-good">Holds 1,600 bar (118 dips cut to 1)</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <figure class="wide">
-        <div class="chart-frame">
-          <button
-            type="button"
-            class="chart-trigger"
-            data-full-src="./assets/road-dyno-progression.png"
-            data-caption="Four-stage road dyno progression in Ankara (~923 mbar)"
-            aria-label="Enlarge chart: Four-stage road dyno progression in Ankara"
-          >
-            <img
-              src="./assets/road-dyno-progression.png"
-              alt="Four-stage road dyno chart showing stock baseline, midrange fuel rail pressure dip in test v2, recovery in v2.1, and final highway curve"
-              width="2520"
-              height="1044"
-              fetchpriority="high"
-            >
-          </button>
+      <section id="results" class="section-band">
+        <div class="section-head">
+          <h2>1. Results</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
         </div>
-        <figcaption>
-          <span>Four-stage road dyno progression logged in Ankara (~923 mbar).</span>
-          <span class="zoom-hint">[click chart to enlarge]</span>
-        </figcaption>
-      </figure>
 
-      <p>Fixing the broken mechanics mattered more than adding boost or fuel. Once the old tune's distorted injector tables were replaced with real calibration data, warm idle jitter dropped by roughly three times, and fixing a single midrange fuel ceiling gave back more wheel power than blindly asking for extra fuel.</p>
+        <p>All acceleration and road-dyno runs below were logged at around 850 m elevation in Ankara (~923 mbar ambient air pressure), where thinner air naturally trims peak output by a few percent compared to sea level. At sea level, the same calibration automatically scales up to roughly <code>190 PS</code> and <code>395–400 Nm</code> through the factory barometric compensation maps.</p>
 
-      <h2>Reading the full ECU over the OBD port</h2>
-
-      <p>Cheap tuning cables usually only read the calibration tables, skipping the actual executable firmware where fault suppression, limp-home logic, and transmission torque calculations live. Opening a 15-year-old sealed aluminum ECU on a workbench risks breaking the PCB, so we needed a full <code>2 MB</code> flash read through the diagnostic port instead.</p>
-
-      <p>To do that without bricking anything, we unpacked a factory Ford update file (<code>VBF</code>) for this hardware family and extracted its secondary bootloader (SBL) — a small helper program that the factory updater temporarily loads into the ECU's RAM to handle flash reads and writes. Disassembling that <code>PowerPC</code> helper confirmed its security challenge-response math, memory read limits, and block checksum routines.</p>
-
-      <p>From there, the workflow was straightforward:</p>
-
-      <ol>
-        <li>Authenticate with the ECU over the car's CAN bus, upload the official secondary bootloader into RAM, and run it.</li>
-        <li>Stream the entire <code>2 MB</code> flash chip out through the OBD port in about 35 seconds while the ECU stayed bolted in the engine bay.</li>
-        <li>Verify every write offline in Python against the bootloader's own checksum checks before ever touching the flashing script.</li>
-      </ol>
-
-      <p>Because both reads and writes go through Ford's own bootloader protocol rather than blind hex patches, every flash step is repeatable and recoverable. (The bootloader reverse engineering and memory layout are documented in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> and <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a>.)</p>
-
-      <h2>Auditing the old tune: 8,398 changed bytes</h2>
-
-      <p>Next, we bought an unmodified stock binary matching the exact software version on our Mondeo and ran a byte-for-byte diff. Every single one of the <code>8,398</code> changed bytes between stock and what came with the car was accounted for, leaving zero unknown edits:</p>
-
-      <figure class="wide">
-        <div class="chart-frame">
-          <button
-            type="button"
-            class="chart-trigger"
-            data-full-src="./assets/audit-breakdown.png"
-            data-caption="100% byte audit breakdown across 8,398 changed bytes (0 unaccounted)"
-            aria-label="Enlarge chart: 100% byte audit breakdown across 8,398 changed bytes"
-          >
-            <img
-              src="./assets/audit-breakdown.png"
-              alt="Breakdown chart accounting for all 8,398 modified bytes in the inherited tune, highlighting 86 disabled monitor paths and 57 silent fault kills"
-              width="2520"
-              height="1044"
-              loading="lazy"
-            >
-          </button>
+        <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper wide">
+          <table>
+            <caption id="results-table-caption">Before and after comparison across Old Remap, Restored Stock, and Final Tune</caption>
+            <thead>
+              <tr>
+                <th scope="col">Metric</th>
+                <th scope="col">Old Remap</th>
+                <th scope="col">Restored Stock (DPF/EGR off)</th>
+                <th scope="col">Final Tune</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Peak power (Ankara ~850 m / sea level)</th>
+                <td>Unlogged (flat 390 Nm limit, skewed IQ)</td>
+                <td>~130 PS factory baseline</td>
+                <td><span class="badge-good">180–185 PS (~190 PS / ~395–400 Nm)</span></td>
+              </tr>
+              <tr>
+                <th scope="row">80–120 km/h (Ankara)</th>
+                <td>Not logged</td>
+                <td>10.3 s</td>
+                <td><span class="badge-good">7.2–7.8 s</span> (60–100 km/h in 5.8 s)</td>
+              </tr>
+              <tr>
+                <th scope="row">Warm idle stability</th>
+                <td>Rough (~3x worse jitter)</td>
+                <td>Smooth (5.2 RPM std dev)</td>
+                <td><span class="badge-good">Smooth (5.2 RPM std dev)</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Hidden fault codes</th>
+                <td><span class="badge-warn">57 silently muted</span> (injectors, fuel, CPU)</td>
+                <td>0 (DPF/EGR only)</td>
+                <td><span class="badge-good">0 (DPF/EGR only)</span></td>
+              </tr>
+              <tr>
+                <th scope="row">Gearbox torque reporting</th>
+                <td><span class="badge-warn">~10% under-reported</span></td>
+                <td>Honest 1:1</td>
+                <td><span class="badge-good">Honest 1:1 (rescaled cleanly)</span></td>
+              </tr>
+              <tr>
+                <th scope="row">High-pressure fuel rail</th>
+                <td>Hidden <code>P0087</code> (non-MIL <code>P0089</code> only)</td>
+                <td>Holds target cleanly</td>
+                <td><span class="badge-good">Holds 1,600 bar (118 dips cut to 1)</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <figcaption>
-          <span>Every changed byte in the prior remap mapped back to a table or firmware patch.</span>
-          <span class="zoom-hint">[click chart to enlarge]</span>
-        </figcaption>
-      </figure>
 
-      <p>Three things explained all of the car's weird behavior:</p>
-
-      <ul>
-        <li><strong>Blanket fault-code deletion (<code>57</code> silent kills, <code>86</code> disabled monitor paths).</strong> Instead of disabling only the fault checks for the physically removed DPF and EGR valve, the old tuner wiped huge blocks of the diagnostic table in firmware code. That silenced low fuel rail pressure (<code>P0087</code>), all four injector circuit faults, accelerator pedal sensor errors, cooling fan failures, <code>12</code> ABS/gearbox/crash CAN errors, and even internal CPU self-test failures (<code>P0606</code>). That is why <code>P0089</code> could drop fuel pressure under load without lighting the dashboard.</li>
-        <li><strong>Lying to the automatic transmission (<code>~10%</code> torque under-report).</strong> Instead of adjusting the actual torque limiters cleanly, the prior tune inflated how much fuel the ECU thought it was injecting per millisecond (<code>+8–10%</code> skew in the Torque-to-Fuel conversion). The engine computer then reported about <code>10%</code> less torque to the 6-speed Aisin automatic gearbox than the engine was actually making, causing sloppy clutch pressure and shift timing, plus rough idle control.</li>
-        <li><strong>Stripped protections and a stray typo.</strong> Four cold-engine, exhaust overheat, altitude, and limp-mode safeguards were disabled, alongside an obvious hex typo that moved a temperature ceiling to <code>205 °C</code>.</li>
-      </ul>
-
-      <p>Before tuning for power, we deleted all of it. We flashed back the unmodified stock binary, removed <em>only</em> the DPF and EGR checks matching the actual hardware on the car, and confirmed warm idle settled to a steady <code>5.2 RPM</code> standard deviation with every safety monitor working again. (The full byte map is in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a>.)</p>
-
-      <h2>Two bugs only road logging caught</h2>
-
-      <p>Static table edits look clean on paper, but a 300,000 km automatic diesel quickly exposes assumptions on an actual highway pull. Generic OBD logging is way too slow (~5–10 samples per second) to catch transient fuel rail drops or torque-converter slip, so we built a direct RAM logger over the OBD port to sample fuel demand, rail pressure, boost, pedal angle, and gearbox signals together in real time, along with a road-dyno tool to plot wheel-corrected power runs.</p>
-
-      <h3>1. Hitting the stock fuel pump ceiling (<code>v2</code> vs <code>v2.1</code>)</h3>
-
-      <figure class="wide">
-        <div class="chart-frame">
-          <button
-            type="button"
-            class="chart-trigger"
-            data-full-src="./assets/rail-ceiling-v2-vs-v21.png"
-            data-caption="Fuel rail pressure tracking: 118 drops &gt;80 bar in v2 vs 1 drop in v2.1"
-            aria-label="Enlarge chart: Fuel rail pressure dips comparing v2 and v2.1"
-          >
-            <img
-              src="./assets/rail-ceiling-v2-vs-v21.png"
-              alt="Telemetry plot comparing v2 with 118 rail pressure dips above 80 bar down to -195 bar against v2.1 holding 1,600 bar with only 1 dip"
-              width="2484"
-              height="1224"
-              loading="lazy"
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/road-dyno-progression.png"
+              data-caption="Four-stage road dyno progression in Ankara (~923 mbar)"
+              aria-label="Enlarge chart: Four-stage road dyno progression in Ankara"
             >
-          </button>
+              <img
+                src="./assets/road-dyno-progression.png"
+                alt="Four-stage road dyno chart showing stock baseline, midrange fuel rail pressure dip in test v2, recovery in v2.1, and final highway curve"
+                width="2520"
+                height="1044"
+                fetchpriority="high"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>Four-stage road dyno progression logged in Ankara (~923 mbar).</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
+
+        <p>Fixing the broken calibration mechanics mattered far more than adding boost or fuel. Restoring honest injector timing and Torque-to-IQ data cut warm idle jitter roughly threefold, and dialing peak fuel back just under the high-pressure pump's mechanical ceiling added more usable wheel power than asking for extra fuel.</p>
+      </section>
+
+      <section id="firmware-re" class="section-band">
+        <div class="section-head">
+          <h2>2. Reversing the SID206 firmware</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
         </div>
-        <figcaption>
-          <span>Direct RAM telemetry caught 118 rail pressure dips above 80 bar before tuning fuel ceiling down to hardware limits.</span>
-          <span class="zoom-hint">[click chart to enlarge]</span>
-        </figcaption>
-      </figure>
 
-      <p>On our early full-power revision (<code>v2</code>), the calibration requested <code>75–79 mg/stroke</code> of fuel at <code>1,600 bar</code> rail pressure. On the road, the worn high-pressure fuel pump couldn't keep up in the midrange: logged rail pressure fell more than <code>80 bar</code> below target <code>118</code> times across steady wide-open-throttle pulls, dropping as much as <code>-195 bar</code> around <code>2,900 RPM</code>. The car felt flat right where it should have pulled hardest.</p>
+        <p>Generic hobbyist OBD flashers usually pull only the <code>256 KiB</code> calibration slice and never show you the executable code where fault-suppression hacks, runtime checksum monitors, and automatic-gearbox torque routing actually live. Opening a 15-year-old sealed aluminum ECU on a workbench risks cracking traces off the board, so everything below started with getting full visibility into a reference <code>2 MiB</code> image and talking cleanly to the live car over CAN via a Tactrix OpenPort 2.0 on macOS (Apple Silicon).</p>
 
-      <p>Backing peak fuel demand down slightly to <code>70.5–72 mg/stroke</code> (<code>v2.1</code>) stayed just inside what the pump can actually feed at <code>1,600 bar</code>. Pressure dips above <code>80 bar</code> dropped from <code>118</code> down to <code>1</code> (with zero dips past <code>100 bar</code>), the midrange torque hole disappeared, and measured power jumped right back up (<code>103.5 PS → 125.6 PS</code> in the <code>2,875 RPM</code> pull bin, climbing to <code>131.5 PS</code> at <code>3,375 RPM</code>).</p>
+        <h3 id="memory-map">2.1 Debunking the TriCore myth &amp; 2 MiB MPC561 memory map</h3>
 
-      <h3>2. Why half-throttle felt dead in Drive (<code>0x07873E</code>)</h3>
+        <p>Disassembling the <code>8G91-12K532-AC</code> image immediately disproved two things routinely repeated on tuning forums. First, there is <strong>no Infineon TriCore</strong> inside SID206 (TriCore <code>TC1797</code> arrived on later <code>SID208</code> ECUs): the binary is <strong>32-bit big-endian Motorola/Freescale <code>MPC561/MPC562</code> PowerPC</strong> running the <code>ERCOSEK V4.1.16 MPC555</code> RTOS (version string verbatim at <code>0x0AAB67</code>). Second, <code>7G91-14C275-AA</code> is not an aftermarket remap artifact — it sits verbatim at <code>0x183396</code> inside the stock factory flash as Block 4's CALID.</p>
 
-      <figure class="wide">
-        <div class="chart-frame">
-          <button
-            type="button"
-            class="chart-trigger"
-            data-full-src="./assets/auto-pedal-0x07873e.png"
-            data-caption="Automatic gearbox pedal map 0x07873E and measured highway gains"
-            aria-label="Enlarge chart: Automatic gearbox pedal map 0x07873E and highway response"
-          >
-            <img
-              src="./assets/auto-pedal-0x07873e.png"
-              alt="Automatic gearbox pedal map 0x07873E showing removed top-speed taper and measured half-throttle highway fueling increase"
-              width="2484"
-              height="1007"
-              loading="lazy"
+        <p>One hardware trap worth flagging up front: external serial EEPROM (<code>.EPR</code>) dumps from another SID206 carry vehicle-specific PATS immobiliser keys, VIN, and injector trims — flashing a donor EEPROM bricks cranking, so only flash (<code>.FLS</code>) blocks serve as software reference. Across the <code>2 MiB</code> (<code>0x200000</code>) flash layout, PowerPC SDA/SDA2 base pointers split memory cleanly into four physical and virtual regions:</p>
+
+        <pre role="region" aria-label="SID206 MPC561 memory map" tabindex="0"><code>Flash Offset             CPU Virtual Addr          Size       Role &amp; Key Anchor Pointers
+──────────────────────────────────────────────────────────────────────────────────────────────────
+0x000000 .. 0x03FFFF     0x00000000 .. 0x0003FFFF  256 KiB    Bootloader (1:1 map; reset 0x000100 → 0x00009F36)
+                                                              Boot0/Boot1 CVNs, SBL string 0x004290, key 0x022231
+
+0x040000 .. 0x07FFFF     0x00840000 .. 0x0087FFFF  256 KiB    Calibration (+0x800000 delta; r2 = 0x00848534 @ 0x19CCEC)
+                                                              CVN 0x040104, Cks2 0x040240..0x040544, DTCs 0x04ABC4
+
+0x080000 .. 0x1CFFFF     0x00480000 .. 0x005CFFFF  1.3 MiB    Application (+0x400000 delta; 0x0D0000..0x0FFFFF erased)
+                                                              App CVN 0x100004, Cks2 caller 0x562E0C, Block 4 @ 0x180000+
+
+(runtime only)           0x007F8000 .. 0x007FFFFF   32 KiB    Internal MPC561 SRAM (r13 = 0x007FFFF0 @ 0x19CCE4)
+                                                              Stack, live sensor vars ($23 windows), SBL landing RAM</code></pre>
+
+        <h3 id="checksums">2.2 Checksums: CRC-32/MPEG-2 CVNs and the live Cks2 monitor</h3>
+
+        <p>Before changing a single byte, we needed exact parity with every integrity check the ECU runs at boot and while driving. Searching for constants turned up three embedded CRC tables (<code>0x021BEC</code>, <code>0x02FFE0</code>, <code>0x0A4954</code>). Disassembling callers confirmed <strong>non-reflected CRC-32/MPEG-2</strong> (polynomial <code>0x04C11DB7</code>, init <code>0xFFFFFFFF</code>, xorout <code>0x00000000</code>). Checking against a stock image matches all three readable header regions bit-for-bit:</p>
+
+        <ul>
+          <li><strong>Boot0 (<code>0x008004</code>):</strong> <code>0xA5D99536</code> across 3 ranges — exact match.</li>
+          <li><strong>Boot1 (<code>0x020044</code>, Mode <code>09 06</code> CVN #3):</strong> <code>0xA3C368D3</code> across 3 ranges — exact match.</li>
+          <li><strong>Calibration (<code>0x040104</code>, Mode <code>09 06</code> CVN #2):</strong> <code>0x96C1E69C</code> (stock) across 4 ranges spanning <code>0x040240–0x07D1BF</code> — exact match.</li>
+          <li><strong>Runtime Monitoring Checksum (<code>Cks2</code>, <code>0x1000D0</code>):</strong> Separate from header CVN, routine <code>0x562E0C</code> continuously checksums <code>0x040240–0x040544</code> inside Calibration while the engine is running. Leaving that slice corrupted trips monitoring errors even if the header CVN validates, so <code>sid206 flash</code> enforces zero byte diffs inside <code>Cks2</code>.</li>
+        </ul>
+
+        <h3 id="seedkey">2.3 Cracking $27 SecurityAccess (24-bit LFSR, reversed bytes &amp; GF(2))</h3>
+
+        <p>To unlock Boot flashing (<code>10 02</code>), Application RAM reads (<code>10 03</code> Level <code>0x03</code>), or protected routines, UDS service <code>$27</code> issues a 3-byte challenge seed and checks a 3-byte response derived from a 5-byte secret. Disassembling both <code>$27</code> handlers (<code>0x02E2C8</code> in Boot and <code>0x19FCA0</code> in Application) confirmed Ford's 24-bit Galois LFSR (<code>init = 0xC541A9</code>, feedback polynomial tap <code>0x909028</code>, stepped for 64 rounds across <code>[seed(3), secret(5)]</code>).</p>
+
+        <p>Reading the PowerPC instructions explained why naive ports of public Ford LFSR snippets failed until checked against disassembly: the firmware loads <code>secret[0]</code> into the top bits of <code>r30</code> and <code>secret[1..4]</code> into <code>r6</code> — the <strong>exact byte-reversed order</strong> relative to standard hex CLI representations:</p>
+
+        <pre role="region" aria-label="SID206 SecurityAccess key table slots" tabindex="0"><code>Session          Level   SendKey   Flash Offset   Notes
+──────────────────────────────────────────────────────────────────────────────────────────────────
+10 02 (Boot)     0x01    27 02     0x022231       Static 5-byte secret in table 0x022228 (pass raw[::-1] to CLI)
+10 03 (App)      0x01    27 02     0x0A26C9       Static 5-byte secret in table 0x0A26BC (pass raw[::-1] to CLI)
+10 03 (App)      0x03    27 04     0x0A26CE       Static 5-byte secret — unlocks $23 SRAM reads &amp; $31 routines
+10 03 (App)      0x11    27 12     0x0A26D3       Delay-gated / dynamic RAM-computed secret (0x0A26DB = 0x01, r13 - 0x749e)</code></pre>
+
+        <p>Because XOR shifting over <code>GF(2)</code> is strictly linear, the 24 output bits of any response depend linearly on the 40 unknown secret bits: even without an initial flash dump, observing just <em>one</em> valid challenge-response pair on the CAN bus recovers the 5-byte secret uniquely in milliseconds (<code>sid206 seedkey</code> implements both algebraic recovery and multi-pair consistency checks).</p>
+
+        <h3 id="sram-read">2.4 Why $23 ReadMemoryByAddress won't dump flash (and what it exposes)</h3>
+
+        <p>In an active Extended session (<code>10 03</code>), UDS service <code>$23 ReadMemoryByAddress</code> (<code>0x1A1F54</code> + parser <code>0x1A5BE4</code>, expecting <code>ALFID = 0x14</code>: <code>23 14 &lt;addr_be32&gt; &lt;len_u8&gt;</code>) validates request formatting and bounds via <code>0x1A565C</code> <em>before</em> checking security mask <code>0x08</code> (Level <code>0x03</code>). Crucially, the whitelist in <code>0x1A565C</code> permits only two 32 KiB internal SRAM windows:</p>
+
+        <ul>
+          <li><code>0x007F8940 .. 0x007F8ADF</code></li>
+          <li><code>0x007F8B90 .. 0x007FF7FF</code></li>
+        </ul>
+
+        <p>Every flash address (<code>0x00000000</code> Boot, <code>0x00480000</code> App, <code>0x00840000</code> Calibration) is unconditionally rejected with <code>NRC 0x31</code> (<code>requestOutOfRange</code>) inside Application mode. That killed the hope of using <code>$23</code> as a backup dumper — but simultaneously gave us direct memory-speed access to live desired rail pressure, fuel valve current, barometric pressure, and injected quantity (<code>IQ</code>) on the road.</p>
+
+        <h3 id="tables-xrefs">2.5 Mode 22 DIDs, $31 routines, and 4,784 calibration xrefs</h3>
+
+        <p>To identify live diagnostic channels and locate every calibration map automatically, we parsed three more ROM tables:</p>
+
+        <ul>
+          <li><strong>Mode 22 DID directory (<code>0x09A738–0x09B098</code>):</strong> <code>200</code> entries × <code>12</code> bytes (<code>&gt;IHBBBBBB</code>), all mapped cleanly to internal RAM variables and readable in Default session (<code>0x1F</code>) with zero seed-key unlock needed (covering ISO IDs <code>F1xx</code>, J1979 mirrors <code>F4xx</code>, and Ford extended internals <code>FD16–FD28</code> / <code>11xx–16xx</code>).</li>
+          <li><strong><code>$31</code> RoutineControl table (<code>0x0A2D04</code>, count @ <code>0x0A2F44</code>):</strong> <code>24</code> service routines split across condition checks (<code>0x00563650</code>: <code>0x0202</code>, <code>0xF000</code>, <code>0xF100–0xFF00</code>), Level <code>0x03</code> mask <code>0x08</code> (<code>0x4003</code>, <code>0x8012</code>, <code>0xFD30–32</code>, etc.), and Level <code>0x11</code> (<code>0x716D</code>).</li>
+          <li><strong>Calibration PowerPC cross-references (<code>0x040000–0x07D1BF</code>):</strong> Scanning the Application code yielded <code>4,784</code> exact calibration references — <code>4,231</code> small-data relative (<code>r2 = 0x00848534</code>) scalars/switches/axes in <code>0x040544–0x04CAAC</code>, <code>189</code> <code>lis+op</code> 2D/3D lookup blocks in <code>0x04CB00–0x07AED3</code>, and <code>194</code> trailing refs in <code>0x07AED4–0x07D1BF</code>.</li>
+          <li><strong>Why factory <code>P0089</code> stays off the dashboard:</strong> Inspecting the <code>279</code>-entry DTC table at <code>0x04ABC4</code> (<code>28</code> bytes per entry) showed <code>P0089</code> at <code>0x04BC64</code> carries fault-class/MIL byte <code>0x10</code> (non-MIL), unlike <code>0x43</code>/<code>0x47</code> on check-engine-light codes like <code>P2263</code> or <code>P2002</code>. UDS <code>$19 02</code> still reports it; generic Mode <code>03</code> dash checks stay dark.</li>
+        </ul>
+      </section>
+
+      <section id="sbl-re" class="section-band">
+        <div class="section-head">
+          <h2>3. Reversing Ford's official Secondary Bootloader (6G91-14C273-DH.vbf)</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
+        </div>
+
+        <p>With Application <code>$23</code> blocked from reading flash, dumping the full <code>2 MiB</code> image over OBD normally requires uploading a custom RAM payload into MPC561 SRAM via Boot session (<code>10 02</code>) — and a subtle bug in SRAM shellcode while touching flash peripherals is a good way to turn an ECU into a paperweight. Instead, I noticed the Boot block at <code>0x004290</code> directly names Ford's own factory Secondary Bootloader (<code>6G91-14C273-DH.vbf</code>), unpacked it (<code>file_checksum = 0xAD9CAEDD</code>), and disassembled every function in the resulting 32 KiB SRAM image.</p>
+
+        <h3 id="sbl-startup">3.1 Startup, IMMR peripheral remapping, and the 10 ms watchdog</h3>
+
+        <p>Unpacking the VBF yields three discrete SRAM blocks (<code>21,888</code> B @ <code>0x007F8380</code> with CRC-16 <code>0x973D</code>, <code>3,828</code> B @ <code>0x007FE1D0</code> with CRC-16 <code>0xDB76</code>, and <code>1</code> B @ <code>0x007FFDA0</code> with CRC-16 <code>0xFF00</code>) with entry point <code>0x007FE254</code>. Disassembling initialization from <code>0x007FE254</code> proved the SBL is 100% standalone once loaded:</p>
+
+        <ul>
+          <li>Remaps internal MPC561 peripheral registers immediately via <code>spr 0x27e = 2</code> (<code>IMMR ISB = 0b01</code>), placing internal hardware registers at <code>0x00400000</code> — putting the watchdog service register <code>SWSR</code> at <code>0x006FC00E</code> and external flash control at <code>0x006FC800</code>.</li>
+          <li>Sets an <code>896</code>-byte stack (<code>r1 = 0x007F8380</code> downward across <code>0x007F8000..0x007F837F</code>), points Small Data Area <code>r13 = 0x007FFFF0</code>, zeroes BSS (<code>0x007FD900..0x007FE1CF</code>), and builds the flash region table at <code>0x007FEEC8</code>. Notice Boot's own RAM scratch area (<code>0x007FFB00..0x007FFD64</code>) never collides with SBL code or BSS.</li>
+          <li>Launches an 8-task cooperative scheduler (<code>0x007FE2AC</code> / <code>0x007FEA40</code>) polling a <code>1 ms</code> timer and ignition/battery monitor (<code>0x007FE6A8</code>), feeding the hardware watchdog every <code>10 ms</code> by writing <code>0x556C</code> / <code>0xAA39</code> to <code>0x006FC00E</code> (<code>0x007FE710</code>), servicing CAN/ISO-TP frames (<code>0x007FAA24</code>), and computing background CRC-16s while emitting <code>7F &lt;sid&gt; 78</code> responsePending frames (<code>0x007FAB40</code>).</li>
+        </ul>
+
+        <h3 id="sbl-dispatch">3.2 The surprise in the UDS dispatch table: native $35 RequestUpload</h3>
+
+        <p>Disassembling the 10-entry UDS service table at <code>0x007FBF18</code> (dispatched by <code>0x007FBC30</code>) delivered the turning point of the whole project: Ford's stock, unmodified VBF bootloader natively implements <strong>UDS <code>$35 RequestUpload</code></strong> alongside <code>$34 RequestDownload</code> — complete with multi-region flash reading, sequence wrapping, and CRC-16 exit verification:</p>
+
+        <pre role="region" aria-label="Official 6G91-14C273-DH.vbf UDS dispatch table and permitted flash regions" tabindex="0"><code># SBL UDS Dispatch Table (0x007FBF18)
+SID   Service              Handler      Verified Firmware Behavior
+────────────────────────────────────────────────────────────────────────────────────────────────────
+0x10  DiagnosticSession    0x007FABF8   0x01/0x81 resets back to App; 0x02/0x82 keeps SBL active
+0x11  ECUReset             0x007FACE0   0x01/0x81 hardware watchdog reset via 0x007FEDEC -> Boot+App
+0x22  ReadDataById         0x007FAD60   D1 00 returns SBL heartbeat 62 D1 00 02; static IDs from Boot
+0x27  SecurityAccess       0x007FAF50   27 01 -> 67 01 00 00 00; 27 02 accepts dummy bytes once in SBL
+0x31  RoutineControl       0x007FB004   01 FF 00 Flash Erase (0x007FCA84); 01 FF 01 CRC-16 CheckMemory
+0x34  RequestDownload      0x007FB278   34 00 44 &lt;addr&gt; &lt;size&gt;, sets download flag -0x22de(r13) = 1
+0x35  RequestUpload        0x007FB440   35 00 44 &lt;addr&gt; &lt;size&gt;, sets upload flag -0x22dd(r13) = 1
+0x36  TransferData         0x007FB5DC   Branches on flag; upload sends 252 B/frame, 255->0 wrap + retry
+0x37  RequestTransferExit  0x007FB908   Checks remaining == 0, returns 77 &lt;crc16_hi&gt; &lt;crc16_lo&gt;
+0x3E  TesterPresent        0x007FB9FC   Reloads S3 timer (0x1F4)
+
+# Permitted External Flash Regions in SBL Descriptor Table (0x007FEEC8, 4 entries @ 0x007FEE78)
+Idx   Region               CPU Start .. End              Size
+────────────────────────────────────────────────────────────────────────────────────────────────────
+0     Calibration          0x00840000 .. 0x0087FFFF      262,144 B (256 KiB)
+1     Application 1        0x00480000 .. 0x0057FFFF    1,048,576 B (1 MiB)
+2     Application 2        0x00580000 .. 0x0058FFFF       65,536 B (64 KiB)
+3     Application 3        0x00590000 .. 0x005CFFFF      262,144 B (256 KiB)   (Boot excluded)</code></pre>
+
+        <h3 id="sbl-safety">3.3 Static call-graph proof: why reading cannot erase or write</h3>
+
+        <p>Before plugging into a live daily driver, I verified statically across Block 0 and Block 1 that a backup run cannot trigger destructive flash operations. Cross-referencing every branch target proved <code>flash_erase</code> (<code>0x007FCA84</code>) has exactly one caller (<code>$31 01 FF 00</code> at <code>0x007FB160</code>), and <code>flash_write</code> (<code>0x007FC920</code>) has exactly one caller inside the <code>$36</code> download branch (<code>0x007FB67C</code>) guarded strictly by <code>-0x22de(r13) == 1</code>. Service <code>$35 RequestUpload</code> sets upload flag <code>-0x22dd(r13) = 1</code> while leaving <code>-0x22de(r13)</code> at <code>0</code> — making flash erase and flash write statically unreachable during any backup.</p>
+
+        <h3 id="sbl-handoff">3.4 Exact Boot → SBL handoff and 35-second OBD backup sequence</h3>
+
+        <p>Putting both disassemblies together gave a deterministic, recoverable transfer sequence on CAN HS (<code>0x7E0</code>/<code>0x7E8</code>, 500 kbit/s). One subtle timing detail solved why naïve scripts fail right after transferring SBL: Boot's jump routine doesn't branch to <code>0x007FE254</code> immediately on receiving <code>31 01 03 01</code> — its post-TX hook (<code>0x02D528..0x02D558</code>) sends the positive response over ISO-TP first, waits for CAN transmission to complete, and <em>then</em> transfers execution to SBL:</p>
+
+        <pre role="region" aria-label="Boot to SBL handoff and Calibration backup/write protocol sequence" tabindex="0"><code>1. App -&gt; Boot  : 10 02 (App checks engine-off precondition @ 0x005A52D4, sends 7F 10 78, jumps 0x0003FC00)
+2. Unlock Boot  : 27 01 -&gt; 27 02 &lt;key&gt; (computed from Boot Level 1 5-byte secret @ 0x022231)
+3. Load SBL     : Stream 3 VBF SRAM segments via 34 00 44 -&gt; 36 &lt;seq&gt; -&gt; 37 (Boot verifies 0x973D / 0xDB76 / 0xFF00)
+4. Execute SBL  : 31 01 03 01 00 7F E2 54 (post-TX hook 0x02D528..0x02D558 enters 0x007FE254 after ACK)
+5. Confirm SBL  : 22 D1 00 -&gt; 62 D1 00 02
+6. Read ($35)   : 35 00 44 00 84 00 00 00 04 00 00 -&gt; loop 1,041 × 36 &lt;seq&gt; (252 B chunks, ~35 s for 256 KiB)
+                  -&gt; 37 verifies SBL CRC-16 against local crc16_ccitt; optional App 1-3 follow same path
+7. Write ($34)  : Offline Cks2/CVN/boot-tail checks -&gt; 31 01 FF 00 erase -&gt; 34 00 44 -&gt; 252 B 36 chunks
+                  -&gt; verify BOTH 37 and 31 01 FF 01 CRC-16s -&gt; 11 01 watchdog reset -&gt; Mode 09 06 CVN verify</code></pre>
+      </section>
+
+      <section id="audit" class="section-band">
+        <div class="section-head">
+          <h2>4. Auditing the old tune: 8,398 changed bytes (0 unaccounted)</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
+        </div>
+
+        <p>With a clean live OBD dump in hand, I purchased an unmodified stock binary matching <code>8G91-12K532-AC</code> and built <code>sid206 audit</code> using the <code>4,784</code> disassembled PowerPC cross-references to classify every single difference. Out of <strong>8,398 changed bytes</strong>, exactly zero bytes remained unexplained:</p>
+
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/audit-breakdown.png"
+              data-caption="100% byte audit breakdown across 8,398 changed bytes (0 unaccounted)"
+              aria-label="Enlarge chart: 100% byte audit breakdown across 8,398 changed bytes"
             >
-          </button>
+              <img
+                src="./assets/audit-breakdown.png"
+                alt="Breakdown chart accounting for all 8,398 modified bytes in the inherited tune, highlighting 86 disabled monitor paths and 57 silent fault kills"
+                width="2520"
+                height="1044"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>Every changed byte in the prior remap mapped back to a table or firmware patch.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
+
+        <h3 id="silent-dtc">4.1 The two-layer r5 = 0 silent DTC lobotomy (57 hidden kills)</h3>
+
+        <p>Disassembly of fault evaluator <code>0x50A9AC</code> revealed why naive DTC-table comparisons miss half of what automated DTC-remover tools break. SID206 validates every fault in two distinct stages:</p>
+
+        <ul>
+          <li><strong>Layer 1 — Debounce matrix (<code>0x048E84–0x049086</code>):</strong> Supplies step increment <code>r5</code> and trip limit <code>r6</code> to handler <code>0x50A9AC</code>. Setting <code>r5 = 0</code> makes <code>0x50AA70</code> / <code>0x50AAEC</code> immediately clear <code>fault_active = 0</code> and exit early.</li>
+          <li><strong>Layer 2 — DTC definition table (<code>0x04ABC4–0x04CA48</code>):</strong> Holds the <code>279</code> OBD/Ford P-codes and MIL/class byte — never reached when Layer 1 zeroes <code>r5</code>.</li>
+        </ul>
+
+        <p>Out of <code>86</code> crippled monitor paths (<code>84</code> Application-referenced plus <code>2</code> collateral slots), only <code>29</code> were cleared in Layer 2. The other <strong>57 fault monitors appeared 100% stock</strong> in standard DTC table editors while silently dead — including low fuel rail pressure (<code>P0087</code>, silenced at <code>0x048EE2</code> — explaining why collapsing fuel pressure surfaced only as non-MIL <code>P0089</code>), FRP sensor faults (<code>P0190/91/94</code>), all four piezo injectors (<code>P0201–04</code>, <code>P1201–04</code>, <code>P1551–54</code>), accelerator pedal sensors (<code>P2120–38</code>), cooling fan control (<code>P0480</code>), A/C pressure (<code>P1461–63</code>, collateral damage from a <code>P14xx</code> regex pass), <code>12</code> ABS/gearbox/crash CAN codes, and even CPU self-test <code>P0606</code>.</p>
+
+        <h3 id="torque-lie">4.2 Skewed Torque-to-IQ (~10% gearbox torque lie) &amp; stripped limiters</h3>
+
+        <ul>
+          <li><strong>Torque-to-IQ skew (<code>2,827</code> bytes across 20 maps):</strong> Instead of calibrating the real torque chain properly, the prior tune inflated injected quantity assumptions by <code>+8–10%</code> above <code>200 Nm</code>. The engine delivered fuel while under-reporting actual torque by roughly <code>10%</code> over CAN to the 6-speed Aisin automatic gearbox and upsetting closed-loop warm idle control.</li>
+          <li><strong>Decapitated safety protections (<code>1,266</code> bytes) + NTC typo:</strong> Coolant overheat derate (<code>0x0790E2</code>, caller <code>0x5C70F8</code>) was zeroed; oil/coolant temperature (<code>0x07932A</code>) and barometric altitude protection (<code>0x07909A</code>) were flattened to <code>450 Nm</code>; limp-home cut (<code>0x07B244</code>) was flattened to <code>300 Nm</code> everywhere; IAT/Baro boost limiters were multiplied flat <code>+15.1%</code> even at <code>100 °C</code>; and a stray byte edit broke an <code>NTC Ch3</code> sensor curve (<code>0x048476</code>) from <code>115 °C</code> to <code>205 °C</code>.</li>
+        </ul>
+
+        <p>Before tuning anything for power, I deleted all of it: restored pure stock calibration tables, retained <em>only</em> the emissions switches (<code>5</code> switches, <code>8</code> post-injection maps, <code>14</code> EGR hysteresis curves) matching the gutted hardware actually on the car, and confirmed warm idle immediately settled down to a clean <code>5.2 RPM</code> standard deviation with every safety monitor restored. (Full table in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a>.)</p>
+      </section>
+
+      <section id="road-logging" class="section-band">
+        <div class="section-head">
+          <h2>5. Road telemetry: two bugs static analysis missed</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
         </div>
-        <figcaption>
-          <span>Pedal-vs-speed table <code>0x07873E</code> overrides standard pedal maps when the automatic transmission is in Drive.</span>
-          <span class="zoom-hint">[click chart to enlarge]</span>
-        </figcaption>
-      </figure>
 
-      <p>Even after fixing full-throttle power, merging onto the highway at 40–55% pedal still felt strangely sluggish. Turning back to the <code>PowerPC</code> firmware disassembly showed why: when the ECU detects an automatic gearbox in Drive, it bypasses all six standard pedal ("Driver's Wish") tables and switches to a separate Pedal-vs-Speed map at <code>0x07873E</code>. From the factory, that table also tapers full-throttle demand down by <code>25–32%</code> above <code>180 km/h</code>.</p>
+        <p>Standard OBD PID polling (~5–10 Hz) drops too many samples to catch fast fuel-rail dips or automatic torque-converter lockup slip during full-throttle shifts. Using the whitelisted <code>$23</code> SRAM windows from Section 2.4 alongside synchronous <code>TF-80SC</code> transmission polling (<code>sid206 log-tcm</code> at ~4.9 Hz and <code>sid206 log-rail</code> at ~10–11 Hz), road pulls immediately uncovered two physical and code realities static table inspection never showed.</p>
 
-      <p>Reshaping <code>0x07873E</code> gave crisp part-throttle response (<code>33–42 mg/stroke</code> up to <code>40–57 mg/stroke</code> around <code>2,000 RPM</code> at normal highway pedal) while keeping the engine-to-gearbox torque math 100% honest, so the 6-speed auto kept shifting cleanly. On the highway in Ankara, <code>80–120 km/h</code> dropped from <code>10.3 s</code> stock to <code>7.2–7.8 s</code>, turbo spool took <code>~1.1 s</code>, and the factory altitude tables handled the drive down to Istanbul automatically.</p>
+        <h3 id="fuel-pump">5.1 Hitting the stock fuel pump ceiling (v2 vs v2.1)</h3>
 
-      <h2>Using AI on a binary you can't afford to brick</h2>
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/rail-ceiling-v2-vs-v21.png"
+              data-caption="Fuel rail pressure tracking: 118 drops &gt;80 bar in v2 vs 1 drop in v2.1"
+              aria-label="Enlarge chart: Fuel rail pressure dips comparing v2 and v2.1"
+            >
+              <img
+                src="./assets/rail-ceiling-v2-vs-v21.png"
+                alt="Telemetry plot comparing v2 with 118 rail pressure dips above 80 bar down to -195 bar against v2.1 holding 1,600 bar with only 1 dip"
+                width="2484"
+                height="1224"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>Direct SRAM telemetry caught 118 rail pressure dips above 80 bar before tuning fuel ceiling down to hardware limits.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
 
-      <p>A lot of this came down to pairing deterministic verification with an AI coding assistant. Where it genuinely saved weeks was tedious reverse engineering: turning raw <code>PowerPC</code> assembly from a <code>2 MB</code> ECU dump into readable C-like logic, matching every single one of those <code>8,398</code> diff bytes to a fault flag or calibration axis, and tracing the indirect pointer that caused <code>0x07873E</code> to override the normal pedal maps in Drive.</p>
+        <p>In my early full-power calibration (<code>v2</code>), asking the 300,000 km high-pressure pump for <code>75–79 mg/stroke</code> at <code>1,600 bar</code> outran its volumetric flow limit in the midrange: rail pressure dropped more than <code>80 bar</code> below target <code>118</code> times across steady WOT pulls, sinking as low as <code>-195 bar</code> around <code>2,900 RPM</code> and carving a noticeable midrange torque hole.</p>
 
-      <p>At the same time, you cannot take an LLM's word for an address or a checksum before flashing a car you actually drive. Every firmware claim had to be backed by exact disassembly instructions and cross-checked against live read-only RAM telemetry on the road. Flash scripts refused to run unless checksum blocks verified cleanly in offline tests first, and the road logs caught physical hardware limits — like the <code>118</code> fuel pump dips — that static inspection alone never would have predicted.</p>
+        <p>Pulling peak demand back to <code>70.5–72 mg/stroke</code> (<code>v2.1</code>) stayed just under what the pump holds cleanly at <code>1,600 bar</code>. Pressure dips over <code>80 bar</code> plummeted from <code>118</code> to <code>1</code> (zero dips over <code>100 bar</code>), and measured power in the <code>2,875 RPM</code> bin jumped straight from <code>103.5 PS</code> back up to <code>125.6 PS</code> (climbing to <code>131.5 PS</code> at <code>3,375 RPM</code>).</p>
 
-      <h2>What is in this repo</h2>
+        <h3 id="auto-pedal">5.2 The automatic Drive pedal override (0x07873E)</h3>
 
-      <p>The Python toolkit, diagnostics scripts, offline audit tools, and full technical documentation live in <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a>. OEM binaries, raw drive logs, VINs, ECU serials, and extracted security keys are excluded.</p>
+        <figure class="wide">
+          <div class="chart-frame">
+            <button
+              type="button"
+              class="chart-trigger"
+              data-full-src="./assets/auto-pedal-0x07873e.png"
+              data-caption="Automatic gearbox pedal map 0x07873E and measured highway gains"
+              aria-label="Enlarge chart: Automatic gearbox pedal map 0x07873E and highway response"
+            >
+              <img
+                src="./assets/auto-pedal-0x07873e.png"
+                alt="Automatic gearbox pedal map 0x07873E showing removed top-speed taper and measured half-throttle highway fueling increase"
+                width="2484"
+                height="1007"
+                loading="lazy"
+              >
+            </button>
+          </div>
+          <figcaption>
+            <span>Pedal-vs-speed table <code>0x07873E</code> overrides standard Driver's Wish maps when the automatic transmission is in Drive.</span>
+            <span class="zoom-hint">[click chart to enlarge]</span>
+          </figcaption>
+        </figure>
 
-      <ul>
-        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/README.md">README.md</a> — toolkit overview and CLI usage</li>
-        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a> — <code>SID206</code> flash layout, torque chain, and fault mask architecture</li>
-        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> — secondary bootloader disassembly and diagnostic protocol details</li>
-        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> — complete breakdown of the <code>8,398</code>-byte prior tune audit</li>
-      </ul>
+        <p>On one highway test drive while experimenting with intermediate calibrations, editing all six standard Driver's Wish pedal maps (<code>0x051AE0–0x0524E0</code>) made no difference at part throttle and that test revision felt unexpectedly flat. Going back to the PowerPC disassembly explained why: caller <code>0x5CF024</code> checks transmission mode and, when an automatic car is in Drive, ignores those six pedal maps completely in favor of a separate <code>16×16</code> Pedal-vs-Speed table at <code>0x07873E</code> — which also applies a <code>25–32%</code> top-end factory taper above <code>180 km/h</code>.</p>
+
+        <p>Reshaping <code>0x07873E</code> restored crisp highway response (lifting <code>38–55%</code> pedal fueling around <code>2,000 RPM</code> from <code>33–42 mg/stroke</code> to <code>40–57 mg/stroke</code>) with 100% honest gearbox torque math. In Ankara, <code>80–120 km/h</code> fell from <code>10.3 s</code> stock to <code>7.2–7.8 s</code> (<code>60–100 km/h</code> in <code>5.8 s</code>, turbo spool in <code>~1.1 s</code>), and driving down to Istanbul verified the factory altitude tables automatically scaled output toward <code>~190 PS</code> at sea level.</p>
+      </section>
+
+      <section id="ai" class="section-band">
+        <div class="section-head">
+          <h2>6. Using AI on a binary you can't afford to brick</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
+        </div>
+
+        <p>Most of this workflow worked because AI handled high-volume reverse-engineering drudgery while deterministic code and hardware checks acted as hard gates. Lifting raw <code>2 MiB</code> PowerPC disassembly into readable C control flow, mapping <code>8,398</code> diff bytes across <code>4,784</code> firmware references, and spotting indirect pointer <code>0x5CF024 → 0x07873E</code> would have taken weeks alone.</p>
+
+        <p>Conversely, you never let an LLM guess a byte offset, endianness rule, or checksum before flashing your own car. Every claimed table or branch had to trace back to verified MPC561 assembly, our flasher enforces offline <code>CRC-32/MPEG-2</code> and <code>Cks2</code> invariants before opening CAN, and live SRAM logs caught mechanical realities — like those <code>118</code> fuel-pump dips — that static disassembly could never predict.</p>
+      </section>
+
+      <section id="repo" class="section-band">
+        <div class="section-head">
+          <h2>7. Code &amp; technical documentation</h2>
+          <a class="back-top" href="#contents">↑ contents</a>
+        </div>
+
+        <p>All reverse-engineering scanners, official-SBL backup/write tools, <code>$23</code> SRAM + <code>TF-80SC</code> loggers, road-dyno analytics, and offline unit/hygiene tests live in <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a>. OEM binaries, personal drive logs, VINs, ECU serials, and extracted 5-byte secrets are intentionally omitted.</p>
+
+        <ul>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/README.md">README.md</a> — installation, arming guards, and CLI examples (<code>sid206 obd|re|audit|backup|flash|log-tcm|dyno</code>)</li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a> — complete <code>MPC561</code> memory map, CVNs, <code>$27/$23/$31</code> tables &amp; DTC layout</li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> — <code>6G91-14C273-DH.vbf</code> SBL disassembly, scheduler, dispatch table &amp; call-graph proof</li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> — full <code>8,398</code>-byte breakdown &amp; TunerPro map offset table</li>
+        </ul>
+      </section>
     </article>
   </main>
 
   <footer class="site-footer grid-band">
     <div class="footer-inner">
       <span>MIT License · <a href="https://github.com/barisuraz/sid206-toolkit">github.com/barisuraz/sid206-toolkit</a></span>
-      <span>Tested on macOS (Apple Silicon) + Tactrix OpenPort 2.0</span>
+      <span>macOS (Apple Silicon) + Tactrix OpenPort 2.0</span>
     </div>
   </footer>
 
@@ -874,40 +504,5 @@
       <img id="lightbox-img" alt="">
     </div>
   </dialog>
-
-  <script>
-    const dialog = document.getElementById("lightbox");
-    const dialogImg = document.getElementById("lightbox-img");
-    const dialogCaption = document.getElementById("lightbox-caption");
-
-    for (const trigger of document.querySelectorAll(".chart-trigger")) {
-      trigger.addEventListener("click", () => {
-        const innerImg = trigger.querySelector("img");
-        dialogImg.src = trigger.dataset.fullSrc || innerImg.src;
-        dialogImg.alt = innerImg.alt;
-        dialogCaption.textContent = trigger.dataset.caption || innerImg.alt;
-        dialog.showModal();
-      });
-    }
-
-    dialog.addEventListener("close", () => {
-      dialogImg.removeAttribute("src");
-      dialogImg.alt = "";
-    });
-
-    if (!("closedBy" in HTMLDialogElement.prototype)) {
-      dialog.addEventListener("click", (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const isDialogContent =
-          rect.top <= event.clientY &&
-          event.clientY <= rect.top + rect.height &&
-          rect.left <= event.clientX &&
-          event.clientX <= rect.left + rect.width;
-        if (isDialogContent) return;
-        dialog.close();
-      });
-    }
-  </script>
 </body>
 </html>

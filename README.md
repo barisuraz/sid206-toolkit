@@ -4,7 +4,7 @@
 
 Tested natively on **macOS (Apple Silicon)** using a Tactrix OpenPort 2.0 (or J2534 clone) via [`bisak/openport-j2534`](https://github.com/bisak/openport-j2534) — no Windows, no VM, no proprietary flash dongle software.
 
-> **Write-up:** **[Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi](https://barisuraz.github.io/sid206-toolkit/)** ([Markdown source](blog/post.md))
+> **Write-up:** **[Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi](https://barisuraz.github.io/sid206-toolkit/)** · **[Türkçe (TR)](https://barisuraz.github.io/sid206-toolkit/tr/)** · ([Markdown source](blog/post.md))
 
 ---
 
@@ -140,9 +140,11 @@ sid206 dyno ext-tcm-drive.csv --mass 1720
 ```text
 sid206-toolkit/
 ├── blog/
-│   ├── assets/                     # Publication-grade telemetry & audit figures
-│   ├── index.html                  # GitHub Pages article with social preview cards
-│   └── post.md                     # Full technical engineering write-up
+│   ├── assets/                     # Shared styles, script & telemetry/audit figures
+│   ├── index.html                  # GitHub Pages article (EN) with OpenGraph cards
+│   ├── post.md                     # Markdown version of the English write-up
+│   └── tr/
+│       └── index.html              # Türkçe sürüm (TR GitHub Pages)
 ├── docs/
 │   ├── sbl-6g91-14c273-dh-re.md    # Official SBL disassembly & native $35 read protocol
 │   ├── sid206-firmware-re.md       # MPC561 memory map, CVNs, $27/$23, DIDs & DTC layout
