@@ -11,6 +11,8 @@
   <link rel="alternate" hreflang="en" href="https://barisuraz.github.io/sid206-toolkit/">
   <link rel="alternate" hreflang="tr" href="https://barisuraz.github.io/sid206-toolkit/tr/">
   <link rel="alternate" hreflang="x-default" href="https://barisuraz.github.io/sid206-toolkit/">
+  <link rel="alternate" type="application/rss+xml" title="Baris Uraz — sid206-toolkit" href="https://barisuraz.github.io/sid206-toolkit/feed.xml">
+  <meta property="article:published_time" content="2026-11-20">
 
   <meta property="og:type" content="article">
   <meta property="og:locale" content="en_US">
@@ -42,7 +44,7 @@
           <ul>
             <li><a href="https://github.com/barisuraz/sid206-toolkit">GitHub</a></li>
             <li><a href="https://github.com/barisuraz/sid206-toolkit/tree/main/docs">Docs</a></li>
-            <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/blog/post.md">Markdown</a></li>
+            <li><a href="./feed.xml">RSS</a></li>
           </ul>
         </nav>
         <nav class="lang-switch" aria-label="Language">
@@ -59,12 +61,29 @@
       <p class="meta-line">
         <span>By Baris Uraz</span>
         <span aria-hidden="true">·</span>
-        <span>Siemens SID206 · MPC561 PowerPC &amp; SBL reverse engineering</span>
+        <time datetime="2026-11-20">20 November 2026</time>
+        <span aria-hidden="true">·</span>
+        <span>~14 min read</span>
+        <span aria-hidden="true">·</span>
+        <span>Siemens SID206 · MPC561 PowerPC &amp; SBL</span>
       </p>
 
       <p>Dumping my car's <code>256 KiB</code> ECU calibration over OBD and diffing it byte-for-byte against a factory stock binary exposed <strong>57 silently disabled fault monitors</strong> — including low fuel rail pressure (<code>P0087</code>), all four piezo injectors, accelerator pedal sensors, cooling fan control, and internal CPU self-test (<code>P0606</code>) — alongside fueling tables skewed to under-report torque by <strong>~10%</strong> to the 6-speed automatic gearbox and four stripped engine-protection limiters.</p>
 
       <p>The car is a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, Aisin <code>TF-80SC</code> automatic, ~300,000 km) that I bought thinking the injectors were healthy and the ECU was stock aside from a previous owner's physical DPF and EGR delete. It pulled fine on the road, though bench testing later forced replacing all four injectors and a deep UDS <code>$19 02</code> scan turned up a non-MIL <code>P0089</code> code with no check-engine light. To inspect what was actually on the ECU, I bought a matching <code>2 MiB</code> stock <code>SID206</code> binary online, reversed its <code>MPC561/MPC562</code> PowerPC firmware and Ford's official SBL (<code>6G91-14C273-DH.vbf</code>) to read my car's <code>256 KiB</code> calibration on a Mac, audited all <code>8,398</code> changed bytes, restored the missing safety monitors and factory protections, and built a clean <code>~190 PS</code> tune backed by direct SRAM telemetry.</p>
+
+      <figure class="photo-figure">
+        <div class="photo-frame">
+          <img
+            src="./assets/mondeo-estate.jpg"
+            alt="2011 Ford Mondeo Mk4.5 2.0 TDCi dark grey estate parked at a highway fuel station in Turkey"
+            width="576"
+            height="432"
+            fetchpriority="high"
+          >
+        </div>
+        <figcaption>The car: 2011 Ford Mondeo Mk4.5 2.0 TDCi estate (~300,000 km).</figcaption>
+      </figure>
 
       <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
         <p id="toc-heading" class="toc-heading">Contents</p>
@@ -110,7 +129,7 @@
 
       <section id="results" class="section-band">
         <div class="section-head">
-          <h2>1. Results</h2>
+          <h2>1. Results <a class="heading-anchor" href="#results" aria-label="Link to section 1"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
@@ -182,7 +201,7 @@
                 alt="Four-stage road dyno chart showing stock baseline, midrange fuel rail pressure dip in test v2, recovery in v2.1, and final highway curve"
                 width="2520"
                 height="1044"
-                fetchpriority="high"
+                loading="lazy"
               >
             </button>
           </div>
@@ -197,13 +216,13 @@
 
       <section id="firmware-re" class="section-band">
         <div class="section-head">
-          <h2>2. Reversing the SID206 firmware</h2>
+          <h2>2. Reversing the SID206 firmware <a class="heading-anchor" href="#firmware-re" aria-label="Link to section 2"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
         <p>Generic hobbyist OBD tools usually only touch the calibration block without exposing how the executable firmware handles fault suppression, runtime checksum monitors, and automatic-gearbox torque routing. Opening a 15-year-old sealed aluminum ECU on a workbench risks cracking traces off the board, so first I bought a matching <code>2 MiB</code> stock <code>.FLS</code> dump online (<code>8G91-12K532-AC</code>) to study the complete Bootloader and Application code offline, before building a Mac OBD client over a Tactrix OpenPort 2.0 J2534 cable to read and write our car's <code>256 KiB</code> calibration safely.</p>
 
-        <h3 id="memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map</h3>
+        <h3 id="memory-map">2.1 2 MiB MPC561/MPC562 PowerPC memory map <a class="heading-anchor" href="#memory-map" aria-label="Link to section 2.1"><span aria-hidden="true">#</span></a></h3>
 
         <p>The <code>8G91-12K532-AC</code> binary runs on a <strong>32-bit big-endian Motorola/Freescale <code>MPC561/MPC562</code> PowerPC</strong> CPU under the <code>ERCOSEK V4.1.16 MPC555</code> RTOS (version string verbatim at <code>0x0AAB67</code>), with factory Block 4 CALID <code>7G91-14C275-AA</code> sitting at flash offset <code>0x183396</code>.</p>
 
@@ -223,7 +242,7 @@
 (runtime only)           0x007F8000 .. 0x007FFFFF   32 KiB    Internal MPC561 SRAM (r13 = 0x007FFFF0 @ 0x19CCE4)
                                                               Stack, live sensor vars ($23 windows), SBL landing RAM</code></pre>
 
-        <h3 id="checksums">2.2 Checksums: CRC-32/MPEG-2 CVNs and the live Cks2 monitor</h3>
+        <h3 id="checksums">2.2 Checksums: CRC-32/MPEG-2 CVNs and the live Cks2 monitor <a class="heading-anchor" href="#checksums" aria-label="Link to section 2.2"><span aria-hidden="true">#</span></a></h3>
 
         <p>Before changing a single byte, we needed exact parity with every integrity check the ECU runs at boot and while driving. Searching for constants turned up three embedded CRC tables (<code>0x021BEC</code>, <code>0x02FFE0</code>, <code>0x0A4954</code>). Disassembling callers confirmed <strong>non-reflected CRC-32/MPEG-2</strong> (polynomial <code>0x04C11DB7</code>, init <code>0xFFFFFFFF</code>, xorout <code>0x00000000</code>). Checking against a stock image matches all three readable header regions bit-for-bit:</p>
 
@@ -234,7 +253,7 @@
           <li><strong>Runtime Monitoring Checksum (<code>Cks2</code>, <code>0x1000D0</code>):</strong> Separate from header CVN, routine <code>0x562E0C</code> continuously checksums <code>0x040240–0x040544</code> inside Calibration while the engine is running. Leaving that slice corrupted trips monitoring errors even if the header CVN validates, so <code>sid206 flash</code> enforces zero byte diffs inside <code>Cks2</code>.</li>
         </ul>
 
-        <h3 id="seedkey">2.3 Cracking $27 SecurityAccess (24-bit LFSR, reversed bytes &amp; GF(2))</h3>
+        <h3 id="seedkey">2.3 Cracking $27 SecurityAccess (24-bit LFSR, reversed bytes &amp; GF(2)) <a class="heading-anchor" href="#seedkey" aria-label="Link to section 2.3"><span aria-hidden="true">#</span></a></h3>
 
         <p>To unlock Boot flashing (<code>10 02</code>), Application RAM reads (<code>10 03</code> Level <code>0x03</code>), or protected routines, UDS service <code>$27</code> issues a 3-byte challenge seed and checks a 3-byte response derived from a 5-byte secret. Disassembling both <code>$27</code> handlers (<code>0x02E2C8</code> in Boot and <code>0x19FCA0</code> in Application) confirmed Ford's 24-bit Galois LFSR (<code>init = 0xC541A9</code>, feedback polynomial tap <code>0x909028</code>, stepped for 64 rounds across <code>[seed(3), secret(5)]</code>).</p>
 
@@ -249,7 +268,7 @@
 
         <p>Because XOR shifting over <code>GF(2)</code> is strictly linear, the 24 output bits of any response depend linearly on the 40 unknown secret bits: even without an initial flash dump, observing just <em>one</em> valid challenge-response pair on the CAN bus recovers the 5-byte secret uniquely in milliseconds (<code>sid206 seedkey</code> implements both algebraic recovery and multi-pair consistency checks).</p>
 
-        <h3 id="sram-read">2.4 Why $23 ReadMemoryByAddress won't dump flash (and what it exposes)</h3>
+        <h3 id="sram-read">2.4 Why $23 ReadMemoryByAddress won't dump flash (and what it exposes) <a class="heading-anchor" href="#sram-read" aria-label="Link to section 2.4"><span aria-hidden="true">#</span></a></h3>
 
         <p>In an active Extended session (<code>10 03</code>), UDS service <code>$23 ReadMemoryByAddress</code> (<code>0x1A1F54</code> + parser <code>0x1A5BE4</code>, expecting <code>ALFID = 0x14</code>: <code>23 14 &lt;addr_be32&gt; &lt;len_u8&gt;</code>) validates request formatting and bounds via <code>0x1A565C</code> <em>before</em> checking security mask <code>0x08</code> (Level <code>0x03</code>). Crucially, the whitelist in <code>0x1A565C</code> permits only two 32 KiB internal SRAM windows:</p>
 
@@ -260,7 +279,7 @@
 
         <p>Every flash address (<code>0x00000000</code> Boot, <code>0x00480000</code> App, <code>0x00840000</code> Calibration) is unconditionally rejected with <code>NRC 0x31</code> (<code>requestOutOfRange</code>) inside Application mode. That killed the hope of using <code>$23</code> as a backup dumper — but simultaneously gave us direct memory-speed access to live desired rail pressure, fuel valve current, barometric pressure, and injected quantity (<code>IQ</code>) on the road.</p>
 
-        <h3 id="tables-xrefs">2.5 Mode 22 DIDs, $31 routines, and 4,784 calibration xrefs</h3>
+        <h3 id="tables-xrefs">2.5 Mode 22 DIDs, $31 routines, and 4,784 calibration xrefs <a class="heading-anchor" href="#tables-xrefs" aria-label="Link to section 2.5"><span aria-hidden="true">#</span></a></h3>
 
         <p>To identify live diagnostic channels and locate every calibration map automatically, we parsed three more ROM tables:</p>
 
@@ -274,13 +293,13 @@
 
       <section id="sbl-re" class="section-band">
         <div class="section-head">
-          <h2>3. Reversing Ford's official Secondary Bootloader (6G91-14C273-DH.vbf)</h2>
+          <h2>3. Reversing Ford's official Secondary Bootloader (6G91-14C273-DH.vbf) <a class="heading-anchor" href="#sbl-re" aria-label="Link to section 3"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
         <p>With Application <code>$23</code> blocked from reading flash, reading our car's <code>256 KiB</code> calibration block cleanly over OBD normally requires uploading a custom RAM payload into MPC561 SRAM via Boot session (<code>10 02</code>) — and a subtle bug in SRAM shellcode while touching flash peripherals is a good way to turn an ECU into a paperweight. Instead, I noticed the Boot block inside our stock <code>2 MiB</code> file directly names Ford's own factory Secondary Bootloader (<code>6G91-14C273-DH.vbf</code> at <code>0x004290</code>), unpacked it (<code>file_checksum = 0xAD9CAEDD</code>), and disassembled every function in the resulting 32 KiB SRAM image.</p>
 
-        <h3 id="sbl-startup">3.1 Startup, IMMR peripheral remapping, and the 10 ms watchdog</h3>
+        <h3 id="sbl-startup">3.1 Startup, IMMR peripheral remapping, and the 10 ms watchdog <a class="heading-anchor" href="#sbl-startup" aria-label="Link to section 3.1"><span aria-hidden="true">#</span></a></h3>
 
         <p>Unpacking the VBF yields three discrete SRAM blocks (<code>21,888</code> B @ <code>0x007F8380</code> with CRC-16 <code>0x973D</code>, <code>3,828</code> B @ <code>0x007FE1D0</code> with CRC-16 <code>0xDB76</code>, and <code>1</code> B @ <code>0x007FFDA0</code> with CRC-16 <code>0xFF00</code>) with entry point <code>0x007FE254</code>. Disassembling initialization from <code>0x007FE254</code> proved the SBL is 100% standalone once loaded:</p>
 
@@ -290,7 +309,7 @@
           <li>Launches an 8-task cooperative scheduler (<code>0x007FE2AC</code> / <code>0x007FEA40</code>) polling a <code>1 ms</code> timer and ignition/battery monitor (<code>0x007FE6A8</code>), feeding the hardware watchdog every <code>10 ms</code> by writing <code>0x556C</code> / <code>0xAA39</code> to <code>0x006FC00E</code> (<code>0x007FE710</code>), servicing CAN/ISO-TP frames (<code>0x007FAA24</code>), and computing background CRC-16s while emitting <code>7F &lt;sid&gt; 78</code> responsePending frames (<code>0x007FAB40</code>).</li>
         </ul>
 
-        <h3 id="sbl-dispatch">3.2 The surprise in the UDS dispatch table: native $35 RequestUpload</h3>
+        <h3 id="sbl-dispatch">3.2 The surprise in the UDS dispatch table: native $35 RequestUpload <a class="heading-anchor" href="#sbl-dispatch" aria-label="Link to section 3.2"><span aria-hidden="true">#</span></a></h3>
 
         <p>Disassembling the 10-entry UDS service table at <code>0x007FBF18</code> (dispatched by <code>0x007FBC30</code>) delivered the turning point of the whole project: Ford's stock, unmodified VBF bootloader natively implements <strong>UDS <code>$35 RequestUpload</code></strong> alongside <code>$34 RequestDownload</code> — complete with multi-region flash reading, sequence wrapping, and CRC-16 exit verification:</p>
 
@@ -298,13 +317,13 @@
 SID   Service              Handler      Verified Firmware Behavior
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 0x10  DiagnosticSession    0x007FABF8   0x01/0x81 resets back to App; 0x02/0x82 keeps SBL active
-0x11  ECUReset             0x007FACE0   0x01/0x81 hardware watchdog reset via 0x007FEDEC -> Boot+App
+0x11  ECUReset             0x007FACE0   0x01/0x81 hardware watchdog reset via 0x007FEDEC -&gt; Boot+App
 0x22  ReadDataById         0x007FAD60   D1 00 returns SBL heartbeat 62 D1 00 02; static IDs from Boot
-0x27  SecurityAccess       0x007FAF50   27 01 -> 67 01 00 00 00; 27 02 accepts dummy bytes once in SBL
+0x27  SecurityAccess       0x007FAF50   27 01 -&gt; 67 01 00 00 00; 27 02 accepts dummy bytes once in SBL
 0x31  RoutineControl       0x007FB004   01 FF 00 Flash Erase (0x007FCA84); 01 FF 01 CRC-16 CheckMemory
 0x34  RequestDownload      0x007FB278   34 00 44 &lt;addr&gt; &lt;size&gt;, sets download flag -0x22de(r13) = 1
 0x35  RequestUpload        0x007FB440   35 00 44 &lt;addr&gt; &lt;size&gt;, sets upload flag -0x22dd(r13) = 1
-0x36  TransferData         0x007FB5DC   Branches on flag; upload sends 252 B/frame, 255->0 wrap + retry
+0x36  TransferData         0x007FB5DC   Branches on flag; upload sends 252 B/frame, 255-&gt;0 wrap + retry
 0x37  RequestTransferExit  0x007FB908   Checks remaining == 0, returns 77 &lt;crc16_hi&gt; &lt;crc16_lo&gt;
 0x3E  TesterPresent        0x007FB9FC   Reloads S3 timer (0x1F4)
 
@@ -316,11 +335,11 @@ Idx   Region               CPU Start .. End              Size
 2     Application 2        0x00580000 .. 0x0058FFFF       65,536 B (64 KiB)
 3     Application 3        0x00590000 .. 0x005CFFFF      262,144 B (256 KiB)   (Boot excluded)</code></pre>
 
-        <h3 id="sbl-safety">3.3 Static call-graph proof: why reading cannot erase or write</h3>
+        <h3 id="sbl-safety">3.3 Static call-graph proof: why reading cannot erase or write <a class="heading-anchor" href="#sbl-safety" aria-label="Link to section 3.3"><span aria-hidden="true">#</span></a></h3>
 
         <p>Before plugging into a live daily driver, I verified statically across Block 0 and Block 1 that a backup run cannot trigger destructive flash operations. Cross-referencing every branch target proved <code>flash_erase</code> (<code>0x007FCA84</code>) has exactly one caller (<code>$31 01 FF 00</code> at <code>0x007FB160</code>), and <code>flash_write</code> (<code>0x007FC920</code>) has exactly one caller inside the <code>$36</code> download branch (<code>0x007FB67C</code>) guarded strictly by <code>-0x22de(r13) == 1</code>. Service <code>$35 RequestUpload</code> sets upload flag <code>-0x22dd(r13) = 1</code> while leaving <code>-0x22de(r13)</code> at <code>0</code> — making flash erase and flash write statically unreachable during any backup.</p>
 
-        <h3 id="sbl-handoff">3.4 Exact Boot → SBL handoff and 35-second OBD backup sequence</h3>
+        <h3 id="sbl-handoff">3.4 Exact Boot → SBL handoff and 35-second OBD backup sequence <a class="heading-anchor" href="#sbl-handoff" aria-label="Link to section 3.4"><span aria-hidden="true">#</span></a></h3>
 
         <p>Putting both disassemblies together gave a deterministic, recoverable transfer sequence on CAN HS (<code>0x7E0</code>/<code>0x7E8</code>, 500 kbit/s). One subtle timing detail solved why naïve scripts fail right after transferring SBL: Boot's jump routine doesn't branch to <code>0x007FE254</code> immediately on receiving <code>31 01 03 01</code> — its post-TX hook (<code>0x02D528..0x02D558</code>) sends the positive response over ISO-TP first, waits for CAN transmission to complete, and <em>then</em> transfers execution to SBL:</p>
 
@@ -337,7 +356,7 @@ Idx   Region               CPU Start .. End              Size
 
       <section id="audit" class="section-band">
         <div class="section-head">
-          <h2>4. Auditing the old tune: 8,398 changed bytes (0 unaccounted)</h2>
+          <h2>4. Auditing the old tune: 8,398 changed bytes (0 unaccounted) <a class="heading-anchor" href="#audit" aria-label="Link to section 4"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
@@ -367,7 +386,7 @@ Idx   Region               CPU Start .. End              Size
           </figcaption>
         </figure>
 
-        <h3 id="silent-dtc">4.1 The two-layer r5 = 0 silent DTC lobotomy (57 hidden kills)</h3>
+        <h3 id="silent-dtc">4.1 The two-layer r5 = 0 silent DTC lobotomy (57 hidden kills) <a class="heading-anchor" href="#silent-dtc" aria-label="Link to section 4.1"><span aria-hidden="true">#</span></a></h3>
 
         <p>Disassembly of fault evaluator <code>0x50A9AC</code> revealed why naive DTC-table comparisons miss half of what automated DTC-remover tools break. SID206 validates every fault in two distinct stages:</p>
 
@@ -378,7 +397,7 @@ Idx   Region               CPU Start .. End              Size
 
         <p>Out of <code>86</code> crippled monitor paths (<code>84</code> Application-referenced plus <code>2</code> collateral slots), only <code>29</code> were cleared in Layer 2. The other <strong>57 fault monitors appeared 100% stock</strong> in standard DTC table editors while silently dead — including low fuel rail pressure (<code>P0087</code>, silenced at <code>0x048EE2</code> — explaining why collapsing fuel pressure surfaced only as non-MIL <code>P0089</code>), FRP sensor faults (<code>P0190/91/94</code>), all four piezo injectors (<code>P0201–04</code>, <code>P1201–04</code>, <code>P1551–54</code>), accelerator pedal sensors (<code>P2120–38</code>), cooling fan control (<code>P0480</code>), A/C pressure (<code>P1461–63</code>, collateral damage from a <code>P14xx</code> regex pass), <code>12</code> ABS/gearbox/crash CAN codes, and even CPU self-test <code>P0606</code>.</p>
 
-        <h3 id="torque-lie">4.2 Skewed Torque-to-IQ (~10% gearbox torque lie) &amp; stripped limiters</h3>
+        <h3 id="torque-lie">4.2 Skewed Torque-to-IQ (~10% gearbox torque lie) &amp; stripped limiters <a class="heading-anchor" href="#torque-lie" aria-label="Link to section 4.2"><span aria-hidden="true">#</span></a></h3>
 
         <ul>
           <li><strong>Torque-to-IQ skew (<code>2,827</code> bytes across 20 maps):</strong> Instead of calibrating the real torque chain properly, the prior tune inflated injected quantity assumptions by <code>+8–10%</code> above <code>200 Nm</code>. The engine delivered fuel while under-reporting actual torque by roughly <code>10%</code> over CAN to the 6-speed Aisin automatic gearbox and upsetting closed-loop warm idle control.</li>
@@ -390,13 +409,13 @@ Idx   Region               CPU Start .. End              Size
 
       <section id="road-logging" class="section-band">
         <div class="section-head">
-          <h2>5. Road telemetry: two bugs static analysis missed</h2>
+          <h2>5. Road telemetry: two bugs static analysis missed <a class="heading-anchor" href="#road-logging" aria-label="Link to section 5"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
         <p>Standard OBD PID polling (~5–10 Hz) drops too many samples to catch fast fuel-rail dips or automatic torque-converter lockup slip during full-throttle shifts. Using the whitelisted <code>$23</code> SRAM windows from Section 2.4 alongside synchronous <code>TF-80SC</code> transmission polling (<code>sid206 log-tcm</code> at ~4.9 Hz and <code>sid206 log-rail</code> at ~10–11 Hz), road pulls immediately uncovered two physical and code realities static table inspection never showed.</p>
 
-        <h3 id="fuel-pump">5.1 Hitting the stock fuel pump ceiling (v2 vs v2.1)</h3>
+        <h3 id="fuel-pump">5.1 Hitting the stock fuel pump ceiling (v2 vs v2.1) <a class="heading-anchor" href="#fuel-pump" aria-label="Link to section 5.1"><span aria-hidden="true">#</span></a></h3>
 
         <figure class="wide">
           <div class="chart-frame">
@@ -426,7 +445,7 @@ Idx   Region               CPU Start .. End              Size
 
         <p>Pulling peak demand back to <code>70.5–72 mg/stroke</code> (<code>v2.1</code>) stayed just under what the pump holds cleanly at <code>1,600 bar</code>. Pressure dips over <code>80 bar</code> plummeted from <code>118</code> to <code>1</code> (zero dips over <code>100 bar</code>), and measured power in the <code>2,875 RPM</code> bin jumped straight from <code>103.5 PS</code> back up to <code>125.6 PS</code> (climbing to <code>131.5 PS</code> at <code>3,375 RPM</code>).</p>
 
-        <h3 id="auto-pedal">5.2 The automatic Drive pedal override (0x07873E)</h3>
+        <h3 id="auto-pedal">5.2 The automatic Drive pedal override (0x07873E) <a class="heading-anchor" href="#auto-pedal" aria-label="Link to section 5.2"><span aria-hidden="true">#</span></a></h3>
 
         <figure class="wide">
           <div class="chart-frame">
@@ -459,7 +478,7 @@ Idx   Region               CPU Start .. End              Size
 
       <section id="ai" class="section-band">
         <div class="section-head">
-          <h2>6. Using AI on a binary you can't afford to brick</h2>
+          <h2>6. Using AI on a binary you can't afford to brick <a class="heading-anchor" href="#ai" aria-label="Link to section 6"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
@@ -470,7 +489,7 @@ Idx   Region               CPU Start .. End              Size
 
       <section id="repo" class="section-band">
         <div class="section-head">
-          <h2>7. Code &amp; technical documentation</h2>
+          <h2>7. Code &amp; technical documentation <a class="heading-anchor" href="#repo" aria-label="Link to section 7"><span aria-hidden="true">#</span></a></h2>
           <a class="back-top" href="#contents">↑ contents</a>
         </div>
 
@@ -488,7 +507,7 @@ Idx   Region               CPU Start .. End              Size
 
   <footer class="site-footer grid-band">
     <div class="footer-inner">
-      <span>MIT License · <a href="https://github.com/barisuraz/sid206-toolkit">github.com/barisuraz/sid206-toolkit</a></span>
+      <span>MIT License · <a href="https://github.com/barisuraz/sid206-toolkit">github.com/barisuraz/sid206-toolkit</a> · <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/blog/post.md">Markdown</a> · <a href="./feed.xml">RSS</a></span>
       <span>macOS (Apple Silicon) + Tactrix OpenPort 2.0</span>
     </div>
   </footer>

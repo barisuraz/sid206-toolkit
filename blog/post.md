@@ -4,6 +4,8 @@ Dumping my car's `256 KiB` ECU calibration over OBD and diffing it byte-for-byte
 
 The car is a 2011 Ford Mondeo Mk4.5 estate (`2.0 TDCi`, 130 PS factory, Aisin `TF-80SC` automatic, ~300,000 km) that I bought thinking the injectors were healthy and the ECU was stock aside from a previous owner's physical DPF and EGR delete. It pulled fine on the road, though bench testing later forced replacing all four injectors and a deep UDS `$19 02` scan turned up a non-MIL `P0089` code with no check-engine light. To inspect what was actually on the ECU, I bought a matching `2 MiB` stock `SID206` binary online, reversed its `MPC561/MPC562` PowerPC firmware and Ford's official SBL (`6G91-14C273-DH.vbf`) to read my car's `256 KiB` calibration on a Mac, audited all `8,398` changed bytes, restored the missing safety monitors and factory protections, and built a clean `~190 PS` tune backed by direct SRAM telemetry.
 
+![2011 Ford Mondeo Mk4.5 2.0 TDCi estate](./assets/mondeo-estate.jpg)
+
 ---
 
 ## Contents
