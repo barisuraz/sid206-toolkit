@@ -1,8 +1,8 @@
 # sid206-toolkit
 
-**Pure-Python diagnostics, MPC561 PowerPC reverse-engineering, 100%-byte-accounted calibration auditing, official-SBL flash backup/write, and live `$23` SRAM + `TF-80SC` TCM telemetry toolkit for Siemens/Continental SID206 ECUs.**
+Python tools for reading, auditing, logging, and flashing Siemens SID206 ECUs over J2534.
 
-Tested natively on **macOS (Apple Silicon)** using a Tactrix OpenPort 2.0 (or J2534 clone) via [`bisak/openport-j2534`](https://github.com/bisak/openport-j2534) — no Windows, no VM, no proprietary flash dongle software.
+Tested on macOS (Apple Silicon) with a Tactrix OpenPort 2.0 via [`bisak/openport-j2534`](https://github.com/bisak/openport-j2534).
 
 > **Write-up:** **[Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi](https://barisuraz.github.io/sid206-toolkit/)** · **[Türkçe (TR)](https://barisuraz.github.io/sid206-toolkit/tr/)** · ([Markdown source](blog/post.md))
 

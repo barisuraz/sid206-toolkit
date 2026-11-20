@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sid206-toolkit"
 version = "0.1.0"
-description = "Pure-Python diagnostics, PowerPC reverse-engineering, byte-accounted calibration audit, SBL flash backup/write, and live SRAM+TCM telemetry toolkit for Siemens/Continental SID206 ECUs."
+description = "Python tools for reading, auditing, logging, and flashing Siemens SID206 ECUs over J2534."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
