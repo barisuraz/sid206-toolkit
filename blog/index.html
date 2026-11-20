@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi</title>
+  <meta name="description" content="Pulling a full 2 MB Siemens SID206 PowerPC binary over OBD, uncovering 57 silently muted fault monitors and a torque lie to the automatic gearbox, and tuning cleanly to ~190 PS.">
+  <meta name="author" content="Baris Uraz">
+  <link rel="canonical" href="https://barisuraz.github.io/sid206-toolkit/">
+
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="sid206-toolkit">
+  <meta property="og:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
+  <meta property="og:description" content="Dumping the full 2 MB SID206 flash over OBD, auditing 8,398 changed bytes against stock, and building a clean ~190 PS Stage 1 tune backed by high-speed road logs.">
+  <meta property="og:url" content="https://barisuraz.github.io/sid206-toolkit/">
+  <meta property="og:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
+  <meta property="og:image:width" content="2520">
+  <meta property="og:image:height" content="1044">
+  <meta property="og:image:alt" content="Four-stage road dyno progression in Ankara comparing stock baseline, intermediate pump-limited tune, and final tune curves">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi">
+  <meta name="twitter:description" content="Pulling a 2 MB ECU dump over OBD, finding 57 hidden fault deletes in PowerPC disassembly, and tuning a 300,000 km Mondeo to ~190 PS.">
+  <meta name="twitter:image" content="https://barisuraz.github.io/sid206-toolkit/assets/road-dyno-progression.png">
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f4c81'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%23ffffff'%3ESID%3C/text%3E%3C/svg%3E">
+
+  <style>
+    :root {
+      color-scheme: light dark;
+
+      --bg-light: #ffffff;
+      --bg-dark: #0d1117;
+      --surface-light: #f6f8fa;
+      --surface-dark: #161b22;
+      --text-light: #111827;
+      --text-dark: #e6edf3;
+      --muted-light: #4b5563;
+      --muted-dark: #9da7b3;
+      --border-light: #6b7280;
+      --border-dark: #656e7a;
+      --rule-light: #d0d7de;
+      --rule-dark: #30363d;
+      --accent-light: #0f4c81;
+      --accent-dark: #58a6ff;
+      --code-bg-light: #eff2f6;
+      --code-bg-dark: #1f242c;
+      --good-text-light: #14532d;
+      --good-text-dark: #7ee787;
+      --warn-text-light: #991b1b;
+      --warn-text-dark: #ff9492;
+      --scrollbar-thumb-light: #5c6570;
+      --scrollbar-thumb-dark: #8b949e;
+      --scrollbar-track-light: #eaeef2;
+      --scrollbar-track-dark: #1c2128;
+
+      --bg: var(--bg-light);
+      --surface: var(--surface-light);
+      --text: var(--text-light);
+      --muted: var(--muted-light);
+      --border: var(--border-light);
+      --rule: var(--rule-light);
+      --accent: var(--accent-light);
+      --code-bg: var(--code-bg-light);
+      --good-text: var(--good-text-light);
+      --warn-text: var(--warn-text-light);
+      --scrollbar-thumb: var(--scrollbar-thumb-light);
+      --scrollbar-track: var(--scrollbar-track-light);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: var(--bg-dark);
+        --surface: var(--surface-dark);
+        --text: var(--text-dark);
+        --muted: var(--muted-dark);
+        --border: var(--border-dark);
+        --rule: var(--rule-dark);
+        --accent: var(--accent-dark);
+        --code-bg: var(--code-bg-dark);
+        --good-text: var(--good-text-dark);
+        --warn-text: var(--warn-text-dark);
+        --scrollbar-thumb: var(--scrollbar-thumb-dark);
+        --scrollbar-track: var(--scrollbar-track-dark);
+      }
+    }
+
+    @supports (color: light-dark(white, black)) {
+      :root {
+        --bg: light-dark(var(--bg-light), var(--bg-dark));
+        --surface: light-dark(var(--surface-light), var(--surface-dark));
+        --text: light-dark(var(--text-light), var(--text-dark));
+        --muted: light-dark(var(--muted-light), var(--muted-dark));
+        --border: light-dark(var(--border-light), var(--border-dark));
+        --rule: light-dark(var(--rule-light), var(--rule-dark));
+        --accent: light-dark(var(--accent-light), var(--accent-dark));
+        --code-bg: light-dark(var(--code-bg-light), var(--code-bg-dark));
+        --good-text: light-dark(var(--good-text-light), var(--good-text-dark));
+        --warn-text: light-dark(var(--warn-text-light), var(--warn-text-dark));
+        --scrollbar-thumb: light-dark(var(--scrollbar-thumb-light), var(--scrollbar-thumb-dark));
+        --scrollbar-track: light-dark(var(--scrollbar-track-light), var(--scrollbar-track-dark));
+      }
+    }
+
+    :root {
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+      accent-color: var(--accent);
+    }
+
+    @supports not (scrollbar-color: auto) {
+      :root::-webkit-scrollbar,
+      .table-wrapper::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+
+      :root::-webkit-scrollbar-thumb,
+      .table-wrapper::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+      }
+
+      :root::-webkit-scrollbar-track,
+      .table-wrapper::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+      }
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: clamp(1rem, 0.96rem + 0.22vw, 1.08rem);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .grid-band {
+      display: grid;
+      grid-template-columns:
+        minmax(clamp(1rem, 4vw, 2.5rem), 1fr)
+        minmax(0, 45rem)
+        minmax(clamp(1rem, 4vw, 2.5rem), 1fr);
+    }
+
+    .grid-band > * {
+      grid-column: 2;
+      min-inline-size: 0;
+    }
+
+    .grid-band > .wide {
+      grid-column: 1 / -1;
+      inline-size: min(62rem, calc(100% - 2 * clamp(1rem, 4vw, 2.5rem)));
+      justify-self: center;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 0.18em;
+    }
+
+    a:hover {
+      text-decoration-thickness: 2.5px;
+    }
+
+    :focus-visible {
+      outline: 2.5px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .site-header {
+      border-block-end: 1px solid var(--rule);
+      background-color: var(--surface);
+      padding-block: 0.9rem;
+    }
+
+    .header-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem 1.25rem;
+    }
+
+    .brand {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .brand:hover {
+      color: var(--accent);
+    }
+
+    .header-nav ul {
+      display: flex;
+      flex-wrap: wrap;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      gap: 0.45rem 1.1rem;
+      font-size: 0.92rem;
+    }
+
+    .header-nav a {
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .header-nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      padding-block: clamp(1.8rem, 4vw, 3rem) clamp(3rem, 6vw, 4.5rem);
+    }
+
+    h1 {
+      margin-block: 0 0.65rem;
+      font-size: clamp(1.75rem, 1.35rem + 1.8vw, 2.55rem);
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+    }
+
+    .meta-line {
+      margin-block: 0 1.6rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.85rem;
+    }
+
+    h2 {
+      margin-block: 2.6rem 0.9rem;
+      padding-block-start: 1.4rem;
+      border-block-start: 1px solid var(--rule);
+      font-size: clamp(1.32rem, 1.15rem + 0.7vw, 1.65rem);
+      line-height: 1.28;
+      letter-spacing: -0.015em;
+    }
+
+    h3 {
+      margin-block: 2rem 0.65rem;
+      font-size: clamp(1.08rem, 1rem + 0.35vw, 1.25rem);
+      line-height: 1.35;
+    }
+
+    p {
+      margin-block: 0 1.15rem;
+    }
+
+    ul,
+    ol {
+      margin-block: 0 1.25rem;
+      padding-inline-start: 1.45rem;
+    }
+
+    li + li {
+      margin-block-start: 0.55rem;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.89em;
+      background-color: var(--code-bg);
+      padding: 0.12em 0.36em;
+      border-radius: 4px;
+      border: 1px solid var(--rule);
+    }
+
+    .badge-good {
+      color: var(--good-text);
+      font-weight: 700;
+    }
+
+    .badge-warn {
+      color: var(--warn-text);
+      font-weight: 700;
+    }
+
+    /* Responsive table (semantic headers + container-query stacked cards on narrow viewports) */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: min(560px, 85vh);
+      container-type: inline-size;
+      margin-block: 1.4rem 1.8rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background-color: var(--bg);
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    table {
+      inline-size: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.94rem;
+      line-height: 1.45;
+      --label-2: "Old Remap";
+      --label-3: "Restored Stock (DPF/EGR off)";
+      --label-4: "Final Tune";
+    }
+
+    caption {
+      padding: 0.75rem 0.95rem;
+      text-align: start;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      background-color: var(--surface);
+      border-block-end: 1px solid var(--rule);
+    }
+
+    thead {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 2;
+      background-color: var(--surface);
+    }
+
+    th,
+    td {
+      padding: 0.72rem 0.95rem;
+      text-align: start;
+      vertical-align: top;
+      border-block-end: 1px solid var(--rule);
+    }
+
+    thead th {
+      font-weight: 700;
+      border-block-end: 2px solid var(--border);
+      background-color: var(--surface);
+    }
+
+    tbody th {
+      position: sticky;
+      inset-inline-start: 0;
+      z-index: 1;
+      background-color: var(--bg);
+      font-weight: 600;
+      border-inline-end: 1px solid var(--rule);
+    }
+
+    tbody tr:last-child th,
+    tbody tr:last-child td {
+      border-block-end: none;
+    }
+
+    @container (width < 600px) {
+      .table-wrapper {
+        max-block-size: none;
+        border: none;
+        background-color: transparent;
+      }
+
+      table,
+      thead,
+      tbody,
+      tr,
+      th,
+      td {
+        display: block;
+      }
+
+      caption {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-block-end: 0.85rem;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-block-end: 0.9rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: var(--bg);
+      }
+
+      tbody th {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 2;
+        background-color: var(--surface);
+        border-inline-end: none;
+        border-block-end: 1px solid var(--border);
+      }
+
+      td {
+        border-block-end: 1px solid var(--rule);
+      }
+
+      td::before {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--muted);
+        margin-block-end: 0.15rem;
+      }
+
+      td:nth-child(2)::before {
+        content: var(--label-2);
+      }
+
+      td:nth-child(3)::before {
+        content: var(--label-3);
+      }
+
+      td:nth-child(4)::before {
+        content: var(--label-4);
+      }
+
+      tbody tr:last-child td:last-child {
+        border-block-end: none;
+      }
+    }
+
+    /* Chart figures with crisp white chart backing and click-to-zoom trigger */
+    figure.wide {
+      margin-block: 1.5rem 1.85rem;
+      margin-inline: 0;
+    }
+
+    .chart-frame {
+      background-color: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: clamp(0.35rem, 1.1vw, 0.75rem);
+    }
+
+    .chart-trigger {
+      display: block;
+      inline-size: 100%;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      cursor: zoom-in;
+      border-radius: 6px;
+    }
+
+    .chart-trigger img {
+      display: block;
+      inline-size: 100%;
+      block-size: auto;
+      border-radius: 6px;
+    }
+
+    figcaption {
+      margin-block-start: 0.55rem;
+      color: var(--muted);
+      font-size: 0.89rem;
+      line-height: 1.45;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.25rem 0.75rem;
+    }
+
+    .zoom-hint {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
+    /* Native modal dialog lightbox */
+    dialog#lightbox {
+      max-inline-size: min(96vw, 80rem);
+      max-block-size: 94vh;
+      margin: auto;
+      padding: 0;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background-color: var(--surface);
+      color: var(--text);
+    }
+
+    dialog#lightbox::backdrop {
+      background-color: rgba(0, 0, 0, 0.74);
+      backdrop-filter: blur(3px);
+    }
+
+    .lightbox-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.7rem 1rem;
+      border-block-end: 1px solid var(--rule);
+    }
+
+    .lightbox-title {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .lightbox-close {
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .lightbox-close:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .lightbox-body {
+      padding: 0.75rem;
+      background-color: #ffffff;
+      overflow: auto;
+      max-block-size: calc(94vh - 3.6rem);
+    }
+
+    .lightbox-body img {
+      display: block;
+      inline-size: 100%;
+      block-size: auto;
+    }
+
+    .site-footer {
+      border-block-start: 1px solid var(--rule);
+      background-color: var(--surface);
+      padding-block: 1.6rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.5rem 1.25rem;
+    }
+
+    @media (prefers-contrast: more) {
+      :root {
+        --muted-light: #1f2937;
+        --muted-dark: #d1d5db;
+        --border-light: #111827;
+        --border-dark: #e5e7eb;
+        --rule-light: #4b5563;
+        --rule-dark: #9ca3af;
+      }
+    }
+
+    @media (forced-colors: active) {
+      body,
+      .site-header,
+      .site-footer,
+      .table-wrapper,
+      thead th,
+      tbody th,
+      caption,
+      dialog#lightbox {
+        background-color: Canvas;
+        color: CanvasText;
+        border-color: CanvasText;
+      }
+
+      .chart-frame,
+      .lightbox-body {
+        forced-color-adjust: none;
+        background-color: #ffffff;
+        border: 2px solid CanvasText;
+      }
+
+      a {
+        color: LinkText;
+      }
+
+      .meta-line,
+      figcaption,
+      .lightbox-title,
+      .site-footer {
+        color: GrayText;
+      }
+
+      .lightbox-close {
+        background-color: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonText;
+      }
+
+      :focus-visible {
+        outline-color: Highlight;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header grid-band">
+    <div class="header-inner">
+      <a class="brand" href="https://github.com/barisuraz/sid206-toolkit">barisuraz / sid206-toolkit</a>
+      <nav class="header-nav" aria-label="Repository links">
+        <ul>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit">GitHub Repo</a></li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/tree/main/docs">Technical Docs</a></li>
+          <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/blog/post.md">Markdown Source</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <article class="grid-band">
+      <h1>Fixing a bad ECU tune on a 2011 Mondeo 2.0 TDCi</h1>
+      <p class="meta-line">
+        <span>By Baris Uraz</span>
+        <span aria-hidden="true">·</span>
+        <span>Siemens SID206 · PowerPC reverse engineering &amp; road telemetry</span>
+      </p>
+
+      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed automatic) with around 300,000 km on the clock. The particulate filter (DPF) and EGR valve had already been physically removed, four fresh injectors were installed, and an unknown prior owner had flashed a remap onto it. On paper it should have pulled fine. In reality the idle was rough, highway passing felt lazy, and under hard load the fuel system threw a pressure fault (<code>P0089</code>), yet generic OBD scanners showed no check-engine light and zero stored codes.</p>
+
+      <p>So I pulled the full binary out of the engine computer (<code>SID206</code>) over the OBD port, bought a clean stock file to diff against, traced the prior tune's hidden patches in firmware disassembly, and built a clean <code>~190 PS</code> Stage 1 calibration verified with high-speed road logs.</p>
+
+      <h2>Results</h2>
+
+      <p>All acceleration and road-dyno runs below were logged at around 850 m elevation in Ankara (~923 mbar ambient air pressure), where thinner air naturally costs a few percent of peak power compared to sea level. At sea level, the same tune automatically scales up to roughly <code>190 PS</code> and <code>395–400 Nm</code> through the factory barometric compensation tables.</p>
+
+      <div tabindex="0" role="region" aria-labelledby="results-table-caption" class="table-wrapper wide">
+        <table>
+          <caption id="results-table-caption">Before and after comparison across Old Remap, Restored Stock, and Final Tune</caption>
+          <thead>
+            <tr>
+              <th scope="col">Metric</th>
+              <th scope="col">Old Remap</th>
+              <th scope="col">Restored Stock (DPF/EGR off)</th>
+              <th scope="col">Final Tune</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Peak power (Ankara ~850 m / sea level)</th>
+              <td>Sluggish pull, pressure drops</td>
+              <td>~130 PS factory baseline</td>
+              <td><span class="badge-good">180–185 PS (~190 PS / ~395–400 Nm)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">80–120 km/h (Ankara)</th>
+              <td>Not repeatable</td>
+              <td>10.3 s</td>
+              <td><span class="badge-good">7.2–7.8 s</span> (60–100 km/h in 5.8 s)</td>
+            </tr>
+            <tr>
+              <th scope="row">Warm idle stability</th>
+              <td>Rough (~3x worse jitter)</td>
+              <td>Smooth (5.2 RPM std dev)</td>
+              <td><span class="badge-good">Smooth (5.2 RPM std dev)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Hidden fault codes</th>
+              <td><span class="badge-warn">57 silently muted</span> (injectors, fuel, CPU)</td>
+              <td>0 (DPF/EGR only)</td>
+              <td><span class="badge-good">0 (DPF/EGR only)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">Gearbox torque reporting</th>
+              <td><span class="badge-warn">~10% under-reported</span></td>
+              <td>Honest 1:1</td>
+              <td><span class="badge-good">Honest 1:1 (rescaled cleanly)</span></td>
+            </tr>
+            <tr>
+              <th scope="row">High-pressure fuel rail</th>
+              <td>Drops pressure (<code>P0089</code> / hidden <code>P0087</code>)</td>
+              <td>Holds target cleanly</td>
+              <td><span class="badge-good">Holds 1,600 bar (118 dips cut to 1)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="wide">
+        <div class="chart-frame">
+          <button
+            type="button"
+            class="chart-trigger"
+            data-full-src="./assets/road-dyno-progression.png"
+            data-caption="Four-stage road dyno progression in Ankara (~923 mbar)"
+            aria-label="Enlarge chart: Four-stage road dyno progression in Ankara"
+          >
+            <img
+              src="./assets/road-dyno-progression.png"
+              alt="Four-stage road dyno chart showing stock baseline, midrange fuel rail pressure dip in test v2, recovery in v2.1, and final highway curve"
+              width="2520"
+              height="1044"
+              fetchpriority="high"
+            >
+          </button>
+        </div>
+        <figcaption>
+          <span>Four-stage road dyno progression logged in Ankara (~923 mbar).</span>
+          <span class="zoom-hint">[click chart to enlarge]</span>
+        </figcaption>
+      </figure>
+
+      <p>Fixing the broken mechanics mattered more than adding boost or fuel. Once the old tune's distorted injector tables were replaced with real calibration data, warm idle jitter dropped by roughly three times, and fixing a single midrange fuel ceiling gave back more wheel power than blindly asking for extra fuel.</p>
+
+      <h2>Reading the full ECU over the OBD port</h2>
+
+      <p>Cheap tuning cables usually only read the calibration tables, skipping the actual executable firmware where fault suppression, limp-home logic, and transmission torque calculations live. Opening a 15-year-old sealed aluminum ECU on a workbench risks breaking the PCB, so we needed a full <code>2 MB</code> flash read through the diagnostic port instead.</p>
+
+      <p>To do that without bricking anything, we unpacked a factory Ford update file (<code>VBF</code>) for this hardware family and extracted its secondary bootloader (SBL) — a small helper program that the factory updater temporarily loads into the ECU's RAM to handle flash reads and writes. Disassembling that <code>PowerPC</code> helper confirmed its security challenge-response math, memory read limits, and block checksum routines.</p>
+
+      <p>From there, the workflow was straightforward:</p>
+
+      <ol>
+        <li>Authenticate with the ECU over the car's CAN bus, upload the official secondary bootloader into RAM, and run it.</li>
+        <li>Stream the entire <code>2 MB</code> flash chip out through the OBD port in about 35 seconds while the ECU stayed bolted in the engine bay.</li>
+        <li>Verify every write offline in Python against the bootloader's own checksum checks before ever touching the flashing script.</li>
+      </ol>
+
+      <p>Because both reads and writes go through Ford's own bootloader protocol rather than blind hex patches, every flash step is repeatable and recoverable. (The bootloader reverse engineering and memory layout are documented in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> and <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a>.)</p>
+
+      <h2>Auditing the old tune: 8,398 changed bytes</h2>
+
+      <p>Next, we bought an unmodified stock binary matching the exact software version on our Mondeo and ran a byte-for-byte diff. Every single one of the <code>8,398</code> changed bytes between stock and what came with the car was accounted for, leaving zero unknown edits:</p>
+
+      <figure class="wide">
+        <div class="chart-frame">
+          <button
+            type="button"
+            class="chart-trigger"
+            data-full-src="./assets/audit-breakdown.png"
+            data-caption="100% byte audit breakdown across 8,398 changed bytes (0 unaccounted)"
+            aria-label="Enlarge chart: 100% byte audit breakdown across 8,398 changed bytes"
+          >
+            <img
+              src="./assets/audit-breakdown.png"
+              alt="Breakdown chart accounting for all 8,398 modified bytes in the inherited tune, highlighting 86 disabled monitor paths and 57 silent fault kills"
+              width="2520"
+              height="1044"
+              loading="lazy"
+            >
+          </button>
+        </div>
+        <figcaption>
+          <span>Every changed byte in the prior remap mapped back to a table or firmware patch.</span>
+          <span class="zoom-hint">[click chart to enlarge]</span>
+        </figcaption>
+      </figure>
+
+      <p>Three things explained all of the car's weird behavior:</p>
+
+      <ul>
+        <li><strong>Blanket fault-code deletion (<code>57</code> silent kills, <code>86</code> disabled monitor paths).</strong> Instead of disabling only the fault checks for the physically removed DPF and EGR valve, the old tuner wiped huge blocks of the diagnostic table in firmware code. That silenced low fuel rail pressure (<code>P0087</code>), all four injector circuit faults, accelerator pedal sensor errors, cooling fan failures, <code>12</code> ABS/gearbox/crash CAN errors, and even internal CPU self-test failures (<code>P0606</code>). That is why <code>P0089</code> could drop fuel pressure under load without lighting the dashboard.</li>
+        <li><strong>Lying to the automatic transmission (<code>~10%</code> torque under-report).</strong> Instead of adjusting the actual torque limiters cleanly, the prior tune inflated how much fuel the ECU thought it was injecting per millisecond (<code>+8–10%</code> skew in the Torque-to-Fuel conversion). The engine computer then reported about <code>10%</code> less torque to the 6-speed Aisin automatic gearbox than the engine was actually making, causing sloppy clutch pressure and shift timing, plus rough idle control.</li>
+        <li><strong>Stripped protections and a stray typo.</strong> Four cold-engine, exhaust overheat, altitude, and limp-mode safeguards were disabled, alongside an obvious hex typo that moved a temperature ceiling to <code>205 °C</code>.</li>
+      </ul>
+
+      <p>Before tuning for power, we deleted all of it. We flashed back the unmodified stock binary, removed <em>only</em> the DPF and EGR checks matching the actual hardware on the car, and confirmed warm idle settled to a steady <code>5.2 RPM</code> standard deviation with every safety monitor working again. (The full byte map is in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a>.)</p>
+
+      <h2>Two bugs only road logging caught</h2>
+
+      <p>Static table edits look clean on paper, but a 300,000 km automatic diesel quickly exposes assumptions on an actual highway pull. Generic OBD logging is way too slow (~5–10 samples per second) to catch transient fuel rail drops or torque-converter slip, so we built a direct RAM logger over the OBD port to sample fuel demand, rail pressure, boost, pedal angle, and gearbox signals together in real time, along with a road-dyno tool to plot wheel-corrected power runs.</p>
+
+      <h3>1. Hitting the stock fuel pump ceiling (<code>v2</code> vs <code>v2.1</code>)</h3>
+
+      <figure class="wide">
+        <div class="chart-frame">
+          <button
+            type="button"
+            class="chart-trigger"
+            data-full-src="./assets/rail-ceiling-v2-vs-v21.png"
+            data-caption="Fuel rail pressure tracking: 118 drops &gt;80 bar in v2 vs 1 drop in v2.1"
+            aria-label="Enlarge chart: Fuel rail pressure dips comparing v2 and v2.1"
+          >
+            <img
+              src="./assets/rail-ceiling-v2-vs-v21.png"
+              alt="Telemetry plot comparing v2 with 118 rail pressure dips above 80 bar down to -195 bar against v2.1 holding 1,600 bar with only 1 dip"
+              width="2484"
+              height="1224"
+              loading="lazy"
+            >
+          </button>
+        </div>
+        <figcaption>
+          <span>Direct RAM telemetry caught 118 rail pressure dips above 80 bar before tuning fuel ceiling down to hardware limits.</span>
+          <span class="zoom-hint">[click chart to enlarge]</span>
+        </figcaption>
+      </figure>
+
+      <p>On our early full-power revision (<code>v2</code>), the calibration requested <code>75–79 mg/stroke</code> of fuel at <code>1,600 bar</code> rail pressure. On the road, the worn high-pressure fuel pump couldn't keep up in the midrange: logged rail pressure fell more than <code>80 bar</code> below target <code>118</code> times across steady wide-open-throttle pulls, dropping as much as <code>-195 bar</code> around <code>2,900 RPM</code>. The car felt flat right where it should have pulled hardest.</p>
+
+      <p>Backing peak fuel demand down slightly to <code>70.5–72 mg/stroke</code> (<code>v2.1</code>) stayed just inside what the pump can actually feed at <code>1,600 bar</code>. Pressure dips above <code>80 bar</code> dropped from <code>118</code> down to <code>1</code> (with zero dips past <code>100 bar</code>), the midrange torque hole disappeared, and measured power jumped right back up (<code>103.5 PS → 125.6 PS</code> in the <code>2,875 RPM</code> pull bin, climbing to <code>131.5 PS</code> at <code>3,375 RPM</code>).</p>
+
+      <h3>2. Why half-throttle felt dead in Drive (<code>0x07873E</code>)</h3>
+
+      <figure class="wide">
+        <div class="chart-frame">
+          <button
+            type="button"
+            class="chart-trigger"
+            data-full-src="./assets/auto-pedal-0x07873e.png"
+            data-caption="Automatic gearbox pedal map 0x07873E and measured highway gains"
+            aria-label="Enlarge chart: Automatic gearbox pedal map 0x07873E and highway response"
+          >
+            <img
+              src="./assets/auto-pedal-0x07873e.png"
+              alt="Automatic gearbox pedal map 0x07873E showing removed top-speed taper and measured half-throttle highway fueling increase"
+              width="2484"
+              height="1007"
+              loading="lazy"
+            >
+          </button>
+        </div>
+        <figcaption>
+          <span>Pedal-vs-speed table <code>0x07873E</code> overrides standard pedal maps when the automatic transmission is in Drive.</span>
+          <span class="zoom-hint">[click chart to enlarge]</span>
+        </figcaption>
+      </figure>
+
+      <p>Even after fixing full-throttle power, merging onto the highway at 40–55% pedal still felt strangely sluggish. Turning back to the <code>PowerPC</code> firmware disassembly showed why: when the ECU detects an automatic gearbox in Drive, it bypasses all six standard pedal ("Driver's Wish") tables and switches to a separate Pedal-vs-Speed map at <code>0x07873E</code>. From the factory, that table also tapers full-throttle demand down by <code>25–32%</code> above <code>180 km/h</code>.</p>
+
+      <p>Reshaping <code>0x07873E</code> gave crisp part-throttle response (<code>33–42 mg/stroke</code> up to <code>40–57 mg/stroke</code> around <code>2,000 RPM</code> at normal highway pedal) while keeping the engine-to-gearbox torque math 100% honest, so the 6-speed auto kept shifting cleanly. On the highway in Ankara, <code>80–120 km/h</code> dropped from <code>10.3 s</code> stock to <code>7.2–7.8 s</code>, turbo spool took <code>~1.1 s</code>, and the factory altitude tables handled the drive down to Istanbul automatically.</p>
+
+      <h2>Using AI on a binary you can't afford to brick</h2>
+
+      <p>A lot of this came down to pairing deterministic verification with an AI coding assistant. Where it genuinely saved weeks was tedious reverse engineering: turning raw <code>PowerPC</code> assembly from a <code>2 MB</code> ECU dump into readable C-like logic, matching every single one of those <code>8,398</code> diff bytes to a fault flag or calibration axis, and tracing the indirect pointer that caused <code>0x07873E</code> to override the normal pedal maps in Drive.</p>
+
+      <p>At the same time, you cannot take an LLM's word for an address or a checksum before flashing a car you actually drive. Every firmware claim had to be backed by exact disassembly instructions and cross-checked against live read-only RAM telemetry on the road. Flash scripts refused to run unless checksum blocks verified cleanly in offline tests first, and the road logs caught physical hardware limits — like the <code>118</code> fuel pump dips — that static inspection alone never would have predicted.</p>
+
+      <h2>What is in this repo</h2>
+
+      <p>The Python toolkit, diagnostics scripts, offline audit tools, and full technical documentation live in <a href="https://github.com/barisuraz/sid206-toolkit">barisuraz/sid206-toolkit</a>. OEM binaries, raw drive logs, VINs, ECU serials, and extracted security keys are excluded.</p>
+
+      <ul>
+        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/README.md">README.md</a> — toolkit overview and CLI usage</li>
+        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sid206-firmware-re.md">docs/sid206-firmware-re.md</a> — <code>SID206</code> flash layout, torque chain, and fault mask architecture</li>
+        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/sbl-6g91-14c273-dh-re.md">docs/sbl-6g91-14c273-dh-re.md</a> — secondary bootloader disassembly and diagnostic protocol details</li>
+        <li><a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> — complete breakdown of the <code>8,398</code>-byte prior tune audit</li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-footer grid-band">
+    <div class="footer-inner">
+      <span>MIT License · <a href="https://github.com/barisuraz/sid206-toolkit">github.com/barisuraz/sid206-toolkit</a></span>
+      <span>Tested on macOS (Apple Silicon) + Tactrix OpenPort 2.0</span>
+    </div>
+  </footer>
+
+  <dialog id="lightbox" closedby="any" aria-labelledby="lightbox-caption">
+    <div class="lightbox-bar">
+      <p id="lightbox-caption" class="lightbox-title"></p>
+      <form method="dialog">
+        <button type="submit" class="lightbox-close">Close</button>
+      </form>
+    </div>
+    <div class="lightbox-body">
+      <img id="lightbox-img" alt="">
+    </div>
+  </dialog>
+
+  <script>
+    const dialog = document.getElementById("lightbox");
+    const dialogImg = document.getElementById("lightbox-img");
+    const dialogCaption = document.getElementById("lightbox-caption");
+
+    for (const trigger of document.querySelectorAll(".chart-trigger")) {
+      trigger.addEventListener("click", () => {
+        const innerImg = trigger.querySelector("img");
+        dialogImg.src = trigger.dataset.fullSrc || innerImg.src;
+        dialogImg.alt = innerImg.alt;
+        dialogCaption.textContent = trigger.dataset.caption || innerImg.alt;
+        dialog.showModal();
+      });
+    }
+
+    dialog.addEventListener("close", () => {
+      dialogImg.removeAttribute("src");
+      dialogImg.alt = "";
+    });
+
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const isDialogContent =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (isDialogContent) return;
+        dialog.close();
+      });
+    }
+  </script>
+</body>
+</html>
