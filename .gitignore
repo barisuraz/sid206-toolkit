@@ -1,0 +1,35 @@
+# Byte-compiled / packaging artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+
+# ECU firmware binaries, dumps, archives, and live logs
+*.bin
+*.fls
+*.FLS
+*.vbf
+*.VBF
+*.epr
+*.EPR
+*.csv
+*.rar
+*.zip
+*.xdf
+dumps/
+stock-dump/
+backups/
+*.receipt.json
+flash_receipt_*.json

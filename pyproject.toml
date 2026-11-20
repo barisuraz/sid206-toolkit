@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sid206-toolkit"
+version = "0.1.0"
+description = "Pure-Python diagnostics, PowerPC reverse-engineering, byte-accounted calibration audit, SBL flash backup/write, and live SRAM+TCM telemetry toolkit for Siemens/Continental SID206 ECUs."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Baris Uraz" },
+]
+keywords = [
+  "sid206",
+  "obd2",
+  "uds",
+  "j2534",
+  "reverse-engineering",
+  "powerpc",
+  "ford",
+  "automotive",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Security",
+]
+dependencies = []
+
+[project.optional-dependencies]
+re = ["capstone>=5.0"]
+dyno = ["numpy>=1.24", "pandas>=2.0"]
+all = ["capstone>=5.0", "numpy>=1.24", "pandas>=2.0"]
+dev = ["pytest>=7.0", "ruff>=0.4"]
+
+[project.scripts]
+sid206 = "sid206.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sid206 = ["dash.html"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
