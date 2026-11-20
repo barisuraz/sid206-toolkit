@@ -62,9 +62,9 @@
         <span>Siemens SID206 · MPC561/MPC562 PowerPC &amp; SBL tersine mühendislik</span>
       </p>
 
-      <p>Yaklaşık 300.000 km'de, 2011 model bir Ford Mondeo Mk4.5 station wagon (<code>2.0 TDCi</code>, fabrika çıkışı 130 PS, 6 ileri Aisin <code>TF-80SC</code> tam otomatik) aldım. Arabayı alırken enjektörlerin sağlam olduğunu ve DPF/EGR iptali dışında ECU yazılımının tamamen orijinal (stok) kaldığını sanıyordum. Ancak enjektörleri teste sokunca dördünün de bitik olduğu ortaya çıktı ve dört piezo enjektörün tamamını sıfırıyla değiştirdim.</p>
+      <p>Aracımın <code>256 KiB</code> ECU calibration yedeğini OBD üzerinden okuyup orijinal fabrika dosyasıyla byte byte karşılaştırdığımda <strong>57 adet gizli DTC iptali</strong> — düşük yakıt basıncı (<code>P0087</code>), dört piezo enjektör, gaz pedalı sensörleri, radyatör fanı ve dahili CPU self-test (<code>P0606</code>) dâhil — ile birlikte 6 ileri otomatik şanzımana torku <strong>~%10 eksik bildiren</strong> yakıt tabloları ve kapatılmış dört motor koruma haritası ortaya çıktı.</p>
 
-      <p>Dört yeni enjektöre rağmen sıcak rölanti hâlâ dalgalıydı; derin UDS <code>$19 02</code> taramasında ise <code>P0089</code> yakıt basıncı hatası görünmesine rağmen standart OBD cihazlarında tek bir DTC çıkmıyor, gösterge panelinde arıza ışığı yanmıyordu. İşin aslını anlamak için önce internetten araca uygun <code>2 MiB</code> stok <code>SID206</code> <code>.FLS</code> dosyasını satın alıp firmware'i inceledim; ardından Ford'un resmi <code>SBL (Secondary Bootloader)</code> dosyasını çözerek Mac üzerinden OBD portundan aracın <code>256 KiB</code> calibration yedeğini aldım. Karşılaştırınca araca önceden gizliden gizliye oldukça bozuk bir yazılım atıldığı ortaya çıktı; eski yamaların tamamını temizleyip yüksek hızlı SRAM loglarıyla doğrulanan temiz bir <code>~190 PS</code> kalibrasyon hazırladım.</p>
+      <p>Söz konusu araç 2011 model Ford Mondeo Mk4.5 station wagon (<code>2.0 TDCi</code>, fabrika çıkışı 130 PS, Aisin <code>TF-80SC</code> otomatik, ~300.000 km). Arabayı enjektörleri sağlam ve önceki sahibinin yaptırdığı fiziksel DPF/EGR iptali dışında yazılımı stok sanarak aldım; yolda gidişiyle ilgili bir şikâyetim de yoktu. Sonrasında testte dört piezo enjektörün de bitik çıkıp değişmesi ve derin UDS <code>$19 02</code> taramasında arıza lambası yakmayan bir <code>P0089</code> kodu görünmesi üzerine ECU'da tam olarak ne olduğunu incelemeye karar verdim. Önce internetten araca uygun <code>2 MiB</code> stok <code>SID206</code> <code>.FLS</code> dosyasını alıp <code>MPC561/MPC562</code> PowerPC firmware'i ve Ford'un resmi <code>SBL</code>'ini (<code>6G91-14C273-DH.vbf</code>) çözdüm; Mac üzerinden OBD ile aracın <code>256 KiB</code> calibration'ını çekip değişen <code>8.398</code> byte'ı analiz ettim, gizli yamaları temizleyerek tüm güvenlik monitörlerini geri getirdim ve doğrudan SRAM loglarıyla doğrulanan temiz bir <code>~190 PS</code> kalibrasyon yazdım.</p>
 
       <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
         <p id="toc-heading" class="toc-heading">İçindekiler</p>
@@ -142,7 +142,7 @@
               </tr>
               <tr>
                 <th scope="row">Sıcak rölanti kararlılığı</th>
-                <td>Titrek (~3 kat daha fazla dalgalanma)</td>
+                <td>~3 kat fazla dalgalanma (stok sonrası fark edildi)</td>
                 <td>Düzenli (5.2 RPM std sapma)</td>
                 <td><span class="badge-good">Düzenli (5.2 RPM std sapma)</span></td>
               </tr>
@@ -192,7 +192,7 @@
           </figcaption>
         </figure>
 
-        <p>Turbo basıncı ya da yakıt açmadan önce kalibrasyonun iç tutarlılığını düzeltmek çok daha fazla fark yarattı. Kaymış enjektör tablolarını temiz stok veriyle değiştirmek sıcak rölanti dalgalanmasını yaklaşık üç kat düşürdü; orta devirdeki yakıt pompası limitinin altında kalmak ise körü körüne yakıt basmaktan daha yüksek tekerlek gücü verdi.</p>
+        <p>Turbo basıncı ya da yakıt açmadan önce kalibrasyonun iç tutarlılığını düzeltmek çok daha fazla fark yarattı. Kaymış enjektör tablolarını temiz stok veriyle değiştirmek sıcak rölantiyi yaklaşık üç kat daha pürüzsüz hâle getirdi (bunu ancak stok yazılıma dönünce fark ettik); orta devirdeki yakıt pompası limitinin altında kalmak ise körü körüne yakıt basmaktan daha yüksek tekerlek gücü verdi.</p>
       </section>
 
       <section id="firmware-re" class="section-band">
@@ -385,7 +385,7 @@ No    Bölge                CPU Start .. End              Boyut
           <li><strong>Kapatılan korumalar (<code>1.266</code> byte) + NTC hatası:</strong> Hararet koruma haritası (<code>0x0790E2</code>, caller <code>0x5C70F8</code>) sıfırlanmış; sıcaklık (<code>0x07932A</code>) ve rakım (<code>0x07909A</code>) limitörleri düz <code>450 Nm</code>'ye, limp-home haritası (<code>0x07B244</code>) düz <code>300 Nm</code>'ye çekilmiş; turbo limitörleri <code>100 °C</code> emme sıcaklığında bile <code>+%15.1</code> açılmış ve yanlış bir byte değişikliği <code>NTC Ch3</code> eğrisini (<code>0x048476</code>) <code>115 °C → 205 °C</code> olarak bozmuştu.</li>
         </ul>
 
-        <p>Güç açmaya çalışmadan önce eski yazılımdaki her şeyi temizledim: orijinal stok kalibrasyonu geri yükleyip <em>yalnızca</em> araçtan fiziksel olarak sökülmüş DPF/EGR donanımının switch ve histerezis eğrilerini (<code>5</code> switch, <code>8</code> post-injection haritası, <code>14</code> EGR eğrisi) kapattım. Sıcak rölanti anında <code>5.2 RPM</code> standart sapmaya düştü ve tüm motor/enjektör/yakıt korumaları tekrar aktif oldu. (Tam ofset dökümü <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> dosyasında.)</p>
+        <p>Araç aldığımda DPF ve EGR fiziksel olarak önceki sahibi tarafından zaten iptal edilmişti; bu repo da bilerek hiçbir emisyon iptal aracı ya da kalibrasyon oluşturucu dağıtmıyor. Üzerindeki yazılımla ilgili asıl sorun, otomatik bir DTC silme aracının bu arada <code>57</code> alakasız motor, enjektör, ray basıncı, pedal, fan, CAN ve CPU koruma kontrolünü kapatıp hararet/rakım limitörlerini kaldırmış olmasıydı. Güç açmadan önce saf stok tabloları geri yükledim, yalnızca araçtaki mevcut fiziksel donanımla eşleşen ayarları korudum (emisyon donanımı geri takılırsa tam fabrika ayarlarına dönülebilecek şekilde), tüm güvenlik kontrollerini yeniden açtım ve stok Torque-to-IQ hesabına dönünce sıcak rölantinin belirgin biçimde <code>5.2 RPM</code> standart sapmaya oturduğunu gördüm. (Tam ofset dökümü <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a> dosyasında.)</p>
       </section>
 
       <section id="road-logging" class="section-band">

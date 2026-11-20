@@ -62,9 +62,9 @@
         <span>Siemens SID206 · MPC561 PowerPC &amp; SBL reverse engineering</span>
       </p>
 
-      <p>I bought a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, 6-speed Aisin <code>TF-80SC</code> automatic) with around 300,000 km on the clock. I bought it thinking the injectors were healthy and that the ECU was stock aside from a physical DPF and EGR delete. After getting the injectors tested on a bench, all four piezo injectors were worn out and had to be replaced.</p>
+      <p>Dumping my car's <code>256 KiB</code> ECU calibration over OBD and diffing it byte-for-byte against a factory stock binary exposed <strong>57 silently disabled fault monitors</strong> — including low fuel rail pressure (<code>P0087</code>), all four piezo injectors, accelerator pedal sensors, cooling fan control, and internal CPU self-test (<code>P0606</code>) — alongside fueling tables skewed to under-report torque by <strong>~10%</strong> to the 6-speed automatic gearbox and four stripped engine-protection limiters.</p>
 
-      <p>Even on four new injectors, warm idle stayed rough, and a deeper UDS <code>$19 02</code> scan caught a <code>P0089</code> fuel-pressure fault while generic OBD readers showed no check-engine light and zero stored codes. To find out what was actually flashed onto the car, I bought a matching <code>2 MiB</code> stock <code>SID206</code> binary online, reversed both the PowerPC firmware and Ford's official Secondary Bootloader (SBL) to dump our car's <code>256 KiB</code> calibration over OBD on a Mac, discovered an undisclosed messy remap hidden inside it, wiped those patches, and built a clean <code>~190 PS</code> tune verified with direct SRAM road logs.</p>
+      <p>The car is a 2011 Ford Mondeo Mk4.5 estate (<code>2.0 TDCi</code>, 130 PS factory, Aisin <code>TF-80SC</code> automatic, ~300,000 km) that I bought thinking the injectors were healthy and the ECU was stock aside from a previous owner's physical DPF and EGR delete. It pulled fine on the road, though bench testing later forced replacing all four injectors and a deep UDS <code>$19 02</code> scan turned up a non-MIL <code>P0089</code> code with no check-engine light. To inspect what was actually on the ECU, I bought a matching <code>2 MiB</code> stock <code>SID206</code> binary online, reversed its <code>MPC561/MPC562</code> PowerPC firmware and Ford's official SBL (<code>6G91-14C273-DH.vbf</code>) to read my car's <code>256 KiB</code> calibration on a Mac, audited all <code>8,398</code> changed bytes, restored the missing safety monitors and factory protections, and built a clean <code>~190 PS</code> tune backed by direct SRAM telemetry.</p>
 
       <nav id="contents" class="toc-box" aria-labelledby="toc-heading">
         <p id="toc-heading" class="toc-heading">Contents</p>
@@ -142,7 +142,7 @@
               </tr>
               <tr>
                 <th scope="row">Warm idle stability</th>
-                <td>Rough (~3x worse jitter)</td>
+                <td>~3x higher jitter (noticed after stock restore)</td>
                 <td>Smooth (5.2 RPM std dev)</td>
                 <td><span class="badge-good">Smooth (5.2 RPM std dev)</span></td>
               </tr>
@@ -192,7 +192,7 @@
           </figcaption>
         </figure>
 
-        <p>Fixing the broken calibration mechanics mattered far more than adding boost or fuel. Restoring honest injector timing and Torque-to-IQ data cut warm idle jitter roughly threefold, and dialing peak fuel back just under the high-pressure pump's mechanical ceiling added more usable wheel power than asking for extra fuel.</p>
+        <p>Fixing the broken calibration mechanics mattered far more than adding boost or fuel. Restoring honest injector timing and Torque-to-IQ data made warm idle roughly threefold smoother (an improvement we only noticed once stock data was back in), and dialing peak fuel back just under the high-pressure pump's mechanical ceiling added more usable wheel power than asking for extra fuel.</p>
       </section>
 
       <section id="firmware-re" class="section-band">
@@ -385,7 +385,7 @@ Idx   Region               CPU Start .. End              Size
           <li><strong>Decapitated safety protections (<code>1,266</code> bytes) + NTC typo:</strong> Coolant overheat derate (<code>0x0790E2</code>, caller <code>0x5C70F8</code>) was zeroed; oil/coolant temperature (<code>0x07932A</code>) and barometric altitude protection (<code>0x07909A</code>) were flattened to <code>450 Nm</code>; limp-home cut (<code>0x07B244</code>) was flattened to <code>300 Nm</code> everywhere; IAT/Baro boost limiters were multiplied flat <code>+15.1%</code> even at <code>100 °C</code>; and a stray byte edit broke an <code>NTC Ch3</code> sensor curve (<code>0x048476</code>) from <code>115 °C</code> to <code>205 °C</code>.</li>
         </ul>
 
-        <p>Before tuning anything for power, I deleted all of it: restored pure stock calibration tables, retained <em>only</em> the emissions switches (<code>5</code> switches, <code>8</code> post-injection maps, <code>14</code> EGR hysteresis curves) matching the gutted hardware actually on the car, and confirmed warm idle immediately settled down to a clean <code>5.2 RPM</code> standard deviation with every safety monitor restored. (Full table in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a>.)</p>
+        <p>The car already arrived with its DPF and EGR physically removed by a previous owner, and this repository intentionally ships no emissions-delete tools or calibration builders. The problem with the inherited file was everything an automated DTC-remover pass broke alongside it: silencing <code>57</code> unrelated engine, injector, rail, pedal, cooling-fan, CAN, and CPU safety monitors while stripping thermal and limp protections. Before tuning anything for power, I flashed back pure stock calibration tables, kept only the configuration matching the physical hardware currently on the vehicle (easy to revert to full OEM fault behavior if hardware is refitted), restored all 57 safety checks, and immediately noticed warm idle settle down to a cleaner <code>5.2 RPM</code> standard deviation once stock Torque-to-IQ math returned. (Full table in <a href="https://github.com/barisuraz/sid206-toolkit/blob/main/docs/tune-audit-case-study.md">docs/tune-audit-case-study.md</a>.)</p>
       </section>
 
       <section id="road-logging" class="section-band">

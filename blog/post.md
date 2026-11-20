@@ -1,8 +1,8 @@
 # Reverse-engineering my car's ECU and tuning it from 130 to 190 HP myself
 
-I bought a 2011 Ford Mondeo Mk4.5 estate (`2.0 TDCi`, 130 PS factory, 6-speed Aisin `TF-80SC` automatic) with around 300,000 km on the clock. I bought it thinking the injectors were healthy and that the ECU was stock aside from a physical DPF and EGR delete. After getting the injectors tested on a bench, all four piezo injectors were worn out and had to be replaced.
+Dumping my car's `256 KiB` ECU calibration over OBD and diffing it byte-for-byte against a factory stock binary exposed **57 silently disabled fault monitors** — including low fuel rail pressure (`P0087`), all four piezo injectors, accelerator pedal sensors, cooling fan control, and internal CPU self-test (`P0606`) — alongside fueling tables skewed to under-report torque by **~10%** to the 6-speed automatic gearbox and four stripped engine-protection limiters.
 
-Even on four new injectors, warm idle stayed rough, and a deeper UDS `$19 02` scan caught a `P0089` fuel-pressure fault while generic OBD readers showed no check-engine light and zero stored codes. To find out what was actually flashed onto the car, I bought a matching `2 MiB` stock `SID206` binary online, reversed both the PowerPC firmware and Ford's official Secondary Bootloader (SBL) to dump our car's `256 KiB` calibration over OBD on a Mac, discovered an undisclosed messy remap hidden inside it, wiped those patches, and built a clean `~190 PS` tune verified with direct SRAM road logs.
+The car is a 2011 Ford Mondeo Mk4.5 estate (`2.0 TDCi`, 130 PS factory, Aisin `TF-80SC` automatic, ~300,000 km) that I bought thinking the injectors were healthy and the ECU was stock aside from a previous owner's physical DPF and EGR delete. It pulled fine on the road, though bench testing later forced replacing all four injectors and a deep UDS `$19 02` scan turned up a non-MIL `P0089` code with no check-engine light. To inspect what was actually on the ECU, I bought a matching `2 MiB` stock `SID206` binary online, reversed its `MPC561/MPC562` PowerPC firmware and Ford's official SBL (`6G91-14C273-DH.vbf`) to read my car's `256 KiB` calibration on a Mac, audited all `8,398` changed bytes, restored the missing safety monitors and factory protections, and built a clean `~190 PS` tune backed by direct SRAM telemetry.
 
 ---
 
@@ -39,14 +39,14 @@ All acceleration and road-dyno runs below were logged at around 850 m elevation 
 | :--- | :--- | :--- | :--- |
 | Peak power (Ankara ~850 m / sea level) | Unlogged (flat 390 Nm limit, skewed IQ) | ~130 PS factory baseline | **180–185 PS (~190 PS / ~395–400 Nm)** |
 | 80–120 km/h (Ankara) | Not logged | 10.3 s | **7.2–7.8 s** (60–100 km/h in 5.8 s) |
-| Warm idle stability | Rough (~3x worse jitter) | Smooth (5.2 RPM std dev) | Smooth (5.2 RPM std dev) |
+| Warm idle stability | ~3x higher jitter (noticed after stock restore) | Smooth (5.2 RPM std dev) | Smooth (5.2 RPM std dev) |
 | Hidden fault codes | **57 silently muted** (injectors, fuel, CPU) | 0 (DPF/EGR only) | 0 (DPF/EGR only) |
 | Gearbox torque reporting | **~10% under-reported** | Honest 1:1 | Honest 1:1 (rescaled cleanly) |
 | High-pressure fuel rail | Hidden `P0087` (non-MIL `P0089` only) | Holds target cleanly | Holds 1,600 bar (118 dips cut to 1) |
 
 ![Four-stage road dyno progression in Ankara](./assets/road-dyno-progression.png)
 
-Fixing the broken calibration mechanics mattered far more than adding boost or fuel. Restoring honest injector timing and Torque-to-IQ data cut warm idle jitter roughly threefold, and dialing peak fuel back just under the high-pressure pump's mechanical ceiling added more usable wheel power than asking for extra fuel.
+Fixing the broken calibration mechanics mattered far more than adding boost or fuel. Restoring honest injector timing and Torque-to-IQ data made warm idle roughly threefold smoother (an improvement we only noticed once stock data was back in), and dialing peak fuel back just under the high-pressure pump's mechanical ceiling added more usable wheel power than asking for extra fuel.
 
 ---
 
@@ -204,7 +204,7 @@ Out of `86` crippled monitor paths (`84` Application-referenced plus `2` collate
 - **Torque-to-IQ skew (`2,827` bytes across 20 maps):** Instead of calibrating the real torque chain properly, the prior tune inflated injected quantity assumptions by `+8–10%` above `200 Nm`. The engine delivered fuel while under-reporting actual torque by roughly `10%` over CAN to the 6-speed Aisin automatic gearbox and upsetting closed-loop warm idle control.
 - **Decapitated safety protections (`1,266` bytes) + NTC typo:** Coolant overheat derate (`0x0790E2`, caller `0x5C70F8`) was zeroed; oil/coolant temperature (`0x07932A`) and barometric altitude protection (`0x07909A`) were flattened to `450 Nm`; limp-home cut (`0x07B244`) was flattened to `300 Nm` everywhere; IAT/Baro boost limiters were multiplied flat `+15.1%` even at `100 °C`; and a stray byte edit broke an `NTC Ch3` sensor curve (`0x048476`) from `115 °C` to `205 °C`.
 
-Before tuning anything for power, I deleted all of it: restored pure stock calibration tables, retained *only* the emissions switches (`5` switches, `8` post-injection maps, `14` EGR hysteresis curves) matching the gutted hardware actually on the car, and confirmed warm idle immediately settled down to a clean `5.2 RPM` standard deviation with every safety monitor restored. (Full table in [docs/tune-audit-case-study.md](../docs/tune-audit-case-study.md).)
+The car already arrived with its DPF and EGR physically removed by a previous owner, and this repository intentionally ships no emissions-delete tools or calibration builders. The problem with the inherited file was everything an automated DTC-remover pass broke alongside it: silencing `57` unrelated engine, injector, rail, pedal, cooling-fan, CAN, and CPU safety monitors while stripping thermal and limp protections. Before tuning anything for power, I flashed back pure stock calibration tables, kept only the configuration matching the physical hardware currently on the vehicle (easy to revert to full OEM fault behavior if hardware is refitted), restored all 57 safety checks, and immediately noticed warm idle settle down to a cleaner `5.2 RPM` standard deviation once stock Torque-to-IQ math returned. (Full table in [docs/tune-audit-case-study.md](../docs/tune-audit-case-study.md).)
 
 ---
 
